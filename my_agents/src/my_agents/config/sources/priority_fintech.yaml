@@ -1,0 +1,11 @@
+profile: fintech
+tiers:
+  regulator: 1
+  rbi: 1
+  sebi: 1
+india_priority_sources:
+  - RBI circulars and regulated entity disclosures
+  - SEBI consultation papers and enforcement actions
+  - NPCI / payment rail ecosystem references
+  - MCA / ROC records
+search_provider: serper

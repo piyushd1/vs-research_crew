@@ -1,0 +1,10 @@
+profile: ic_memo
+title: "IC Memo"
+format: markdown
+sections:
+  - executive_summary
+  - investment_recommendation
+  - scorecard_summary
+  - top_signals
+  - top_risks
+  - open_questions

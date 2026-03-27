@@ -1,0 +1,10 @@
+profile: one_pager
+title: "One Pager"
+format: html
+sections:
+  - company_snapshot
+  - scorecard_summary
+  - top_signals
+  - top_risks
+  - open_questions
+  - next_steps

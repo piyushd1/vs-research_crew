@@ -1,0 +1,8 @@
+profile: climate
+tiers:
+  regulator: 1
+india_priority_sources:
+  - MNRE / sector policy references
+  - State power and energy disclosures
+  - Environmental approvals and public project information
+search_provider: serper

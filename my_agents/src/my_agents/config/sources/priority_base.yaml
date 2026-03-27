@@ -1,0 +1,30 @@
+profile: base
+tiers:
+  regulator: 1
+  mca: 1
+  sebi: 1
+  rbi: 1
+  nclt: 1
+  audited_financials: 2
+  uploaded_private: 3
+  company_site: 3
+  public_media: 4
+  startup_media: 4
+  public_web: 5
+india_priority_sources:
+  - MCA / ROC
+  - SEBI / BSE / NSE
+  - RBI and sector regulators
+  - Startup India / DPIIT
+  - IP India
+  - Economic Times / Mint / Inc42 / Entrackr / The Ken
+founder_signal_sources:
+  - MCA / ROC filings
+  - IP India
+  - SEBI / BSE / NSE disclosures
+  - Startup India / DPIIT
+  - Public press and startup media
+  - GitHub
+  - Google Scholar / Semantic Scholar
+  - NCLT / public legal databases
+search_provider: serper

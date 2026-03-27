@@ -1,0 +1,17 @@
+profile: full_report
+title: "Full Report"
+format: markdown
+sections:
+  - executive_summary
+  - company_snapshot
+  - market_landscape
+  - financial_analysis
+  - product_technology
+  - founder_assessment
+  - gtm_momentum
+  - regulatory_compliance
+  - risk_register
+  - investment_recommendation
+  - scorecard_summary
+  - open_questions
+  - evidence_gaps

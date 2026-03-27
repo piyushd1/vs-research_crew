@@ -1,0 +1,9 @@
+profile: saas_ai
+tiers:
+  company_site: 3
+  public_media: 4
+india_priority_sources:
+  - Company docs and pricing pages
+  - GitHub and technical artifacts
+  - Startup media and product launches
+search_provider: serper

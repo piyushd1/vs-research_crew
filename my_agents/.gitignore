@@ -1,0 +1,12 @@
+.env
+.env copy
+__pycache__/
+.DS_Store
+.venv/
+.pytest_cache/
+runs/
+report.md
+*.pdf
+one_pager.html
+.crewai-home/
+.local/

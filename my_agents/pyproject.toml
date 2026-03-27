@@ -1,0 +1,25 @@
+[project]
+name = "my_agents"
+version = "0.1.0"
+description = "India-first VC research and diligence agents built on CrewAI"
+authors = [{ name = "Piyush Dev" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai[tools]==1.12.2",
+    "weasyprint>=62,<64"
+]
+
+[project.scripts]
+my_agents = "my_agents.main:run"
+run_crew = "my_agents.main:run"
+train = "my_agents.main:train"
+replay = "my_agents.main:replay"
+test = "my_agents.main:test"
+run_with_trigger = "my_agents.main:run_with_trigger"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"

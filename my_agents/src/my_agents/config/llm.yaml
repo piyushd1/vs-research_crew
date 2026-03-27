@@ -1,0 +1,25 @@
+provider: openrouter
+model: openrouter/deepseek/deepseek-v3.2
+base_url: https://openrouter.ai/api/v1
+api_key_env: OPENROUTER_API_KEY
+temperature: 0.2
+max_tokens: 4096
+open_source_only: true
+allow_closed_models: false
+allowed_model_prefixes:
+  - deepseek/
+  - openrouter/deepseek/
+  - meta-llama/
+  - openrouter/meta-llama/
+  - qwen/
+  - openrouter/qwen/
+  - gemma
+  - openrouter/google/gemma
+  - mistral/
+  - openrouter/mistral/
+  - mixtral
+  - granite
+  - phi-
+  - falcon
+  - olmo
+  - nemotron

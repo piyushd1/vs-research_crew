@@ -1,0 +1,9 @@
+profile: consumer
+tiers:
+  public_media: 4
+  startup_media: 4
+india_priority_sources:
+  - Consumer brand press and reviews
+  - Marketplace and app-store evidence
+  - Indian commerce and retail media
+search_provider: serper

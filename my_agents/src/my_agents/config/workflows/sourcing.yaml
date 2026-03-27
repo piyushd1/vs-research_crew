@@ -1,0 +1,12 @@
+workflow: sourcing
+description: "Single-company sourcing workflow for India-first startup screening."
+tasks:
+  - agent: startup_sourcer
+    objective: "Build an initial startup snapshot, including what the company does and why it matters."
+  - agent: thesis_fit_analyst
+    objective: "Assess fund-thesis fit, stage fit, and geographic fit."
+    checkpoint: true
+  - agent: market_mapper
+    objective: "Map the market landscape, competitor set, and India-specific tailwinds and headwinds."
+  - agent: founder_signal_analyst
+    objective: "Assess founder signal using the approved India-first fallback source hierarchy."

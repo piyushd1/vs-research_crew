@@ -1,0 +1,12 @@
+workflow: portfolio
+description: "Portfolio monitoring workflow for a single company review."
+tasks:
+  - agent: portfolio_monitor
+    objective: "Summarize company status, momentum, and headline updates."
+  - agent: kpi_burn_analyst
+    objective: "Review KPI trends, burn, runway, and variance from plan."
+    checkpoint: true
+  - agent: growth_ops_analyst
+    objective: "Identify support opportunities across hiring, GTM, and operating cadence."
+  - agent: risk_alert_analyst
+    objective: "Escalate operational, legal, market, and financing risks that need investor attention."

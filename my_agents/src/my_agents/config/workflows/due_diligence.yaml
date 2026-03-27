@@ -1,0 +1,21 @@
+workflow: due_diligence
+description: "Deep diligence workflow for a single target company."
+tasks:
+  - agent: financial_researcher
+    objective: "Review business model quality, revenue quality, burn, runway, and unit economics."
+  - agent: marketing_gtm_researcher
+    objective: "Assess GTM motion, positioning, customer acquisition, and traction."
+  - agent: product_tech_researcher
+    objective: "Evaluate product differentiation, technical depth, and defensibility."
+  - agent: customer_competition_analyst
+    objective: "Assess buyer value, retention signal, and competitive pressure."
+    checkpoint: true
+  - agent: investment_analyst
+    objective: "Translate the diligence record into a conviction-based investment view."
+  - agent: india_regulatory_legal_analyst
+    objective: "Surface India-specific legal and regulatory risks."
+  - agent: risk_red_team_analyst
+    objective: "Challenge the bullish case and highlight downside risk."
+  - agent: valuation_scenarios_analyst
+    objective: "Frame reasonable base, upside, and downside scenarios for decision-making."
+    checkpoint: true
