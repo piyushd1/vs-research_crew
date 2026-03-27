@@ -26,7 +26,6 @@ It is ready to share as a normal CrewAI project: someone can clone this repo, in
   - [`src/my_agents/config/workflows/due_diligence.yaml`](/Users/piyushdev/Documents/Agents/crewAI/my_agents/src/my_agents/config/workflows/due_diligence.yaml)
   - [`src/my_agents/config/workflows/portfolio.yaml`](/Users/piyushdev/Documents/Agents/crewAI/my_agents/src/my_agents/config/workflows/portfolio.yaml)
 - Output renderers: [`src/my_agents/renderers`](/Users/piyushdev/Documents/Agents/crewAI/my_agents/src/my_agents/renderers)
-- Example brief: [`examples/acme_fintech_brief.yaml`](/Users/piyushdev/Documents/Agents/crewAI/my_agents/examples/acme_fintech_brief.yaml)
 
 ## Open-Source LLM Configuration
 
@@ -108,13 +107,27 @@ cp .env.example .env
 
 ## Running
 
+Create a brief file like this:
+
+```yaml
+company_name: Example Fintech
+website: https://example.com
+sector: fintech
+stage: seed
+geography: India
+one_line: API infrastructure for credit underwriting.
+questions:
+  - What is differentiated about the underwriting model?
+  - Which India-specific regulatory risks matter most?
+```
+
 From the project folder:
 
 ```bash
 cd /Users/piyushdev/Documents/Agents/crewAI/my_agents
 /Users/piyushdev/Documents/Agents/crewAI/my_agents/.venv/bin/python -m my_agents.main \
   --workflow due_diligence \
-  --brief examples/acme_fintech_brief.yaml \
+  --brief /absolute/path/to/brief.yaml \
   --output-profile ic_memo \
   --approve-mode auto
 ```
@@ -124,7 +137,7 @@ For a one-pager:
 ```bash
 /Users/piyushdev/Documents/Agents/crewAI/my_agents/.venv/bin/python -m my_agents.main \
   --workflow sourcing \
-  --brief examples/acme_fintech_brief.yaml \
+  --brief /absolute/path/to/brief.yaml \
   --output-profile one_pager
 ```
 
@@ -146,13 +159,3 @@ Each run creates a versioned folder under `runs/{company_slug}/{timestamp}/` wit
 - `findings_bundle.json`
 - `run_state.json`
 - `findings/{agent_name}.json`
-
-## Tests
-
-Run the test suite with:
-
-```bash
-HOME=/Users/piyushdev/Documents/Agents/crewAI/my_agents/.crewai-home \
-XDG_DATA_HOME=/Users/piyushdev/Documents/Agents/crewAI/my_agents/.local/share \
-/Users/piyushdev/Documents/Agents/crewAI/my_agents/.venv/bin/python -m unittest discover -s tests -v
-```
