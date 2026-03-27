@@ -139,6 +139,20 @@ class Brief(BaseModel):
         docs_path = Path(value)
         if not docs_path.exists():
             raise ValueError(f"docs_dir does not exist: {value}")
+        allowed_suffixes = {".pdf", ".csv"}
+        ignored_filenames = {".ds_store"}
+        unsupported = sorted(
+            str(path.relative_to(docs_path))
+            for path in docs_path.rglob("*")
+            if path.is_file()
+            and path.name.lower() not in ignored_filenames
+            and path.suffix.lower() not in allowed_suffixes
+        )
+        if unsupported:
+            raise ValueError(
+                "docs_dir only supports PDF and CSV files in v1. Unsupported files: "
+                + ", ".join(unsupported[:10])
+            )
         return value
 
 

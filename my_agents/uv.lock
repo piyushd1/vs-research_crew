@@ -1804,12 +1804,14 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "crewai", extra = ["tools"] },
+    { name = "python-dotenv" },
     { name = "weasyprint" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "crewai", extras = ["tools"], specifier = "==1.12.2" },
+    { name = "python-dotenv", specifier = ">=1.0,<2" },
     { name = "weasyprint", specifier = ">=62,<64" },
 ]
 

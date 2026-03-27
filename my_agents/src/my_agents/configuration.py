@@ -44,10 +44,20 @@ class AppConfig:
             resolved.update(self.scorecard_overlays[sector])
         return resolved
 
-    def resolve_source_profile(self, sector: str | None) -> SourcePriorityConfig:
+    def resolve_source_profile(
+        self,
+        sector: str | None,
+        profile_override: str | None = None,
+    ) -> SourcePriorityConfig:
         base_payload = self.source_base.model_dump()
-        if sector and sector in self.source_overlays:
-            overlay_payload = self.source_overlays[sector].model_dump(exclude_unset=True)
+        selected_profile = profile_override or sector
+        if profile_override and profile_override != "base" and profile_override not in self.source_overlays:
+            raise ValueError(
+                f"Unknown sources profile '{profile_override}'. Available profiles: "
+                + ", ".join(["base", *sorted(self.source_overlays)])
+            )
+        if selected_profile and selected_profile in self.source_overlays:
+            overlay_payload = self.source_overlays[selected_profile].model_dump(exclude_unset=True)
             base_payload["tiers"].update(overlay_payload.get("tiers", {}))
             for field in ("india_priority_sources", "founder_signal_sources"):
                 if overlay_payload.get(field):

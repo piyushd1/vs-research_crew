@@ -71,7 +71,7 @@ allow_closed_models: false
 
 ## Environment
 
-Copy [`.env.example`](/Users/piyushdev/Documents/Agents/crewAI/my_agents/.env.example) to `.env` and only add the keys you want to use.
+Copy [`.env.example`](/Users/piyushdev/Documents/Agents/crewAI/my_agents/.env.example) to `.env` and only add the keys you want to use. The app auto-loads `my_agents/.env` at runtime.
 
 For an OpenRouter-backed open-source model:
 
@@ -121,6 +121,8 @@ questions:
   - Which India-specific regulatory risks matter most?
 ```
 
+If you use `docs_dir`, v1 accepts only `PDF` and `CSV` files.
+
 From the project folder:
 
 ```bash
@@ -131,6 +133,8 @@ cd /Users/piyushdev/Documents/Agents/crewAI/my_agents
   --output-profile ic_memo \
   --approve-mode auto
 ```
+
+You can override the default sector-based source pack with `--sources-profile`, for example `--sources-profile fintech`.
 
 For a one-pager:
 
@@ -152,7 +156,7 @@ For resume:
 
 Each run creates a versioned folder under `runs/{company_slug}/{timestamp}/` with:
 - `report.md`
-- `report.pdf` for `ic_memo` and `full_report`
+- `report.pdf` for `ic_memo` and `full_report` when the host machine has WeasyPrint system libraries available
 - `one_pager.html` for `one_pager`
 - `scorecard.json`
 - `sources.json`
