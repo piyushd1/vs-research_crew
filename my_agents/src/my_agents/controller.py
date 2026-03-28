@@ -231,16 +231,29 @@ class VCResearchController:
             return brief, run_dir, state
 
         assert request.workflow is not None
-        assert request.brief_path is not None
-        brief = load_brief(request.brief_path)
-        if request.sector:
-            brief.sector = request.sector
-        if request.stage:
-            brief.stage = request.stage
-        if request.geography:
-            brief.geography = request.geography
-        if request.docs_dir:
-            brief.docs_dir = request.docs_dir
+        if request.brief_path:
+            brief = load_brief(request.brief_path)
+            if request.sector:
+                brief.sector = request.sector
+            if request.stage:
+                brief.stage = request.stage
+            if request.geography:
+                brief.geography = request.geography
+            if request.docs_dir:
+                brief.docs_dir = request.docs_dir
+        elif request.company_name:
+            brief = Brief(
+                company_name=request.company_name,
+                sector=request.sector or "general",
+                stage=request.stage or "unknown",
+                geography=request.geography or "India",
+                focus_instructions=request.focus_instructions,
+                exclude_instructions=request.exclude_instructions,
+            )
+            if request.docs_dir:
+                brief.docs_dir = request.docs_dir
+        else:
+            raise ValueError("Either --brief or --company must be provided.")
 
         company_slug = self._slugify(brief.company_name)
         timestamp = self.now_fn().strftime("%Y-%m-%d_%H%M%S")
@@ -297,6 +310,20 @@ class VCResearchController:
                 f"{rendered_flags}\n\n"
             )
 
+        focus_block = ""
+        if brief.focus_instructions:
+            focus_block = (
+                "FOCUS INSTRUCTIONS (prioritize these areas):\n"
+                f"- {brief.focus_instructions}\n\n"
+            )
+
+        exclude_block = ""
+        if brief.exclude_instructions:
+            exclude_block = (
+                "EXCLUSION INSTRUCTIONS (deprioritize or skip):\n"
+                f"- {brief.exclude_instructions}\n\n"
+            )
+
         founder_signal_block = ""
         if task.agent == "founder_signal_analyst":
             founder_signal_block = (
@@ -348,6 +375,8 @@ class VCResearchController:
             f"- Thesis: {brief.investment_thesis or 'Not provided'}\n"
             f"- Notes: {brief.notes or 'Not provided'}\n\n"
             f"Prior evidence summary:\n{evidence.summary()}\n\n"
+            f"{focus_block}"
+            f"{exclude_block}"
             f"India-first source priorities:\n{source_notes}\n\n"
             f"{docs_block}"
             "When adding downstream_flags.for_agent, use ONLY these exact agent ids:\n"
