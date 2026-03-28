@@ -10,24 +10,37 @@ from crewai.cli.constants import (
     CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN,
 )
 
+MOCK_DOMAIN = "test-domain.com"
+MOCK_CLIENT_ID = "test-client-id"
+MOCK_AUDIENCE = "test-audience"
+
 
 class TestAuthenticationCommand:
+    @pytest.fixture(autouse=True)
+    def mock_settings(self):
+        with patch("crewai.cli.authentication.main.Settings") as mock:
+            mock_settings_inst = mock.return_value
+            mock_settings_inst.oauth2_domain = MOCK_DOMAIN
+            mock_settings_inst.oauth2_client_id = MOCK_CLIENT_ID
+            mock_settings_inst.oauth2_audience = MOCK_AUDIENCE
+            mock_settings_inst.oauth2_provider = "workos"
+            mock_settings_inst.oauth2_extra = {}
+            yield mock
+
     def setup_method(self):
         self.auth_command = AuthenticationCommand()
 
-    # TODO: these expectations are reading from the actual settings, we should mock them.
-    # E.g. if you change the client_id locally, this test will fail.
     @pytest.mark.parametrize(
         "user_provider,expected_urls",
         [
             (
                 "workos",
                 {
-                    "device_code_url": f"https://{CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN}/oauth2/device_authorization",
-                    "token_url": f"https://{CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN}/oauth2/token",
-                    "client_id": CREWAI_ENTERPRISE_DEFAULT_OAUTH2_CLIENT_ID,
-                    "audience": CREWAI_ENTERPRISE_DEFAULT_OAUTH2_AUDIENCE,
-                    "domain": CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN,
+                    "device_code_url": f"https://{MOCK_DOMAIN}/oauth2/device_authorization",
+                    "token_url": f"https://{MOCK_DOMAIN}/oauth2/token",
+                    "client_id": MOCK_CLIENT_ID,
+                    "audience": MOCK_AUDIENCE,
+                    "domain": MOCK_DOMAIN,
                 },
             ),
         ],
@@ -99,9 +112,9 @@ class TestAuthenticationCommand:
             (
                 "workos",
                 {
-                    "jwks_url": f"https://{CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN}/oauth2/jwks",
-                    "issuer": f"https://{CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN}",
-                    "audience": CREWAI_ENTERPRISE_DEFAULT_OAUTH2_AUDIENCE,
+                    "jwks_url": f"https://{MOCK_DOMAIN}/oauth2/jwks",
+                    "issuer": f"https://{MOCK_DOMAIN}",
+                    "audience": MOCK_AUDIENCE,
                 },
             ),
         ],
@@ -124,8 +137,8 @@ class TestAuthenticationCommand:
             self.auth_command.oauth2_provider = WorkosProvider(
                 settings=Oauth2Settings(
                     provider=user_provider,
-                    client_id="test-client-id",
-                    domain=CREWAI_ENTERPRISE_DEFAULT_OAUTH2_DOMAIN,
+                    client_id=MOCK_CLIENT_ID,
+                    domain=MOCK_DOMAIN,
                     audience=jwt_config["audience"],
                 )
             )
