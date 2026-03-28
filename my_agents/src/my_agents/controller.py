@@ -664,11 +664,6 @@ class VCResearchController:
         state: RunState,
         workflow: object | None = None,
     ) -> None:
-        state.pending_agents = (
-            state.pending_agents
-            if state.pending_agents
-            else [task.agent for task in getattr(workflow, "tasks", [])]
-        )
         state.last_updated = self.now_fn()
         (run_dir / "run_state.json").write_text(
             state.model_dump_json(indent=2),
