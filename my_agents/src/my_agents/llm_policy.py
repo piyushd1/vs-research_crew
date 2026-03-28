@@ -96,3 +96,11 @@ def build_llm(config: LLMConfig):
         temperature=config.temperature,
         max_tokens=config.max_tokens,
     )
+
+def build_eval_llm(config: LLMConfig):
+    from crewai.llm import LLM
+    if not config.eval_model:
+        return build_llm(config)
+        
+    eval_config = config.model_copy(update={"model": config.eval_model})
+    return build_llm(eval_config)

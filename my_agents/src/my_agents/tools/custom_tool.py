@@ -45,6 +45,8 @@ SECTOR_SOURCE_HINTS = {
     "fintech": [
         "RBI, SEBI, NPCI, and MCA / ROC references",
         "Regulated entity disclosures and rail-level ecosystem evidence",
+        "NBFC, P2P lending, digital lending guidelines, and FLDG norms",
+        "Credit bureau signals, UPI/BBPS adoption, and co-lending evidence",
     ],
     "healthtech": [
         "CDSCO, MoHFW, NHA, ABDM, NABH, NABL, and provider partner references",
@@ -65,6 +67,12 @@ SECTOR_SOURCE_HINTS = {
     "saas_ai": [
         "Product docs, pricing pages, trust centers, and changelogs",
         "GitHub, benchmark artifacts, customer case studies, and integration ecosystems",
+    ],
+    "generic": [
+        "Company website, product documentation, and public filings",
+        "Indian startup media (Inc42, YourStory, Entrackr, The Ken, ET Startup)",
+        "Government and regulatory disclosures relevant to the sector",
+        "MCA / ROC filings, industry reports, and press coverage",
     ],
 }
 
@@ -218,7 +226,9 @@ class IndiaSourceRegistryTool(BaseTool):
             "Audited financials and uploaded data room documents",
             "Indian business media and startup databases",
         ]
-        sector_specific = SECTOR_SOURCE_HINTS.get(canonical_sector, [])
+        sector_specific = SECTOR_SOURCE_HINTS.get(
+            canonical_sector, SECTOR_SOURCE_HINTS.get("generic", [])
+        )
         lines = [
             f"Workflow: {workflow}",
             f"Sector: {canonical_sector}",

@@ -106,6 +106,7 @@ class LLMConfig(BaseModel):
             "nemotron",
         ]
     )
+    eval_model: str | None = None
 
 
 class LinearConfig(BaseModel):
@@ -121,15 +122,17 @@ class IntegrationsConfig(BaseModel):
 
 class Brief(BaseModel):
     company_name: str
-    website: str
-    sector: str
-    stage: str
-    geography: str
+    website: str = "Unknown"
+    sector: str = "general"
+    stage: str = "unknown"
+    geography: str = "India"
     one_line: str | None = None
     investment_thesis: str | None = None
     questions: list[str] = Field(default_factory=list)
     docs_dir: str | None = None
     notes: str | None = None
+    focus_instructions: str | None = None
+    exclude_instructions: str | None = None
 
     @field_validator("docs_dir")
     @classmethod
@@ -246,6 +249,18 @@ class WorkflowTaskDefinition(BaseModel):
     objective: str
     checkpoint: bool = False
 
+class FindingEval(BaseModel):
+    finding_claim: str
+    is_hallucination: bool
+    rationale: str
+
+class VCRubric(BaseModel):
+    relevance_score: int = Field(ge=1, le=10)
+    tone_score: int = Field(ge=1, le=10)
+    hallucinations: list[FindingEval] = Field(default_factory=list)
+    negative_constraint_violations: list[str] = Field(default_factory=list)
+    final_eval_score: int = Field(ge=0, le=100)
+    summary_feedback: str
 
 class WorkflowConfig(BaseModel):
     workflow: WorkflowType
@@ -318,13 +333,23 @@ class RunRequest(BaseModel):
     resume: Path | None = None
     config_dir: Path | None = None
     verbose: bool = False
+    company_name: str | None = None
+    focus_instructions: str | None = None
+    exclude_instructions: str | None = None
+    run_evals: bool = False
+    eval_only_dir: Path | None = None
 
     @model_validator(mode="after")
     def validate_run_request(self) -> "RunRequest":
-        if self.resume is None and (self.workflow is None or self.brief_path is None):
-            raise ValueError(
-                "workflow and brief_path are required unless --resume is used."
-            )
+        if self.resume is None:
+            has_brief = self.brief_path is not None
+            has_company = self.company_name is not None
+            if not has_brief and not has_company:
+                raise ValueError(
+                    "Either --brief or --company is required unless --resume is used."
+                )
+            if self.workflow is None:
+                self.workflow = WorkflowType.SOURCING
         return self
 
 

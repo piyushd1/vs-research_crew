@@ -33,6 +33,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--resume", type=Path)
     parser.add_argument("--config-dir", type=Path)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--company", help="Company name for quick-mode research")
+    parser.add_argument("--focus", help="Instructions on what to focus on")
+    parser.add_argument("--exclude", help="Instructions on what to exclude")
+    parser.add_argument("--run-evals", action="store_true", help="Run LLM evaluation on output")
+    parser.add_argument("--eval-only-dir", type=Path, help="Run evals on an existing run directory")
     return parser
 
 
@@ -51,6 +56,11 @@ def run(argv: list[str] | None = None):
         resume=args.resume,
         config_dir=args.config_dir,
         verbose=args.verbose,
+        company_name=args.company,
+        focus_instructions=args.focus,
+        exclude_instructions=args.exclude,
+        run_evals=args.run_evals,
+        eval_only_dir=args.eval_only_dir,
     )
     artifacts = VCResearchController().run(request)
     print(f"Run complete: {artifacts.run_dir}")

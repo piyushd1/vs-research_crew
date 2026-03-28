@@ -1,0 +1,12 @@
+company_name: "SnackWell India"
+website: "https://example.com/snackwell"
+sector: "d2c brands"
+stage: "Series A"
+geography: "India"
+one_line: "A clean-label, millet-based omnichannel snack brand targeting urban health-conscious consumers."
+investment_thesis: |
+  Healthy snacking in India is growing at 20% CAGR. SnackWell has shown strong early traction in quick-commerce and wants to scale modern trade distribution.
+questions:
+  - "What is their repeat rate on quick-commerce platforms like Zepto and Blinkit?"
+  - "How do their gross margins compare to traditional snack brands?"
+focus_instructions: "Focus heavily on brand search volume and D2C metrics."

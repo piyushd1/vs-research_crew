@@ -135,6 +135,10 @@ testpaths = [
     "lib/crewai/tests",
     "lib/crewai-tools/tests",
     "lib/crewai-files/tests",
+    "my_agents/tests",
+]
+pythonpath = [
+    "my_agents/src",
 ]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
@@ -179,6 +183,7 @@ members = [
     "lib/crewai-tools",
     "lib/devtools",
     "lib/crewai-files",
+    "my_agents",
 ]
 
 
@@ -187,3 +192,4 @@ crewai = { workspace = true }
 crewai-tools = { workspace = true }
 crewai-devtools = { workspace = true }
 crewai-files = { workspace = true }
+my_agents = { workspace = true }

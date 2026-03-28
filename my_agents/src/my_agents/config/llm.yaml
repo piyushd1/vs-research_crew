@@ -23,3 +23,10 @@ allowed_model_prefixes:
   - falcon
   - olmo
   - nemotron
+
+# Evaluation Model (LLM-as-a-Judge)
+# Cheap and powerful models on OpenRouter for evals:
+# - openrouter/meta-llama/llama-3.3-70b-instruct (default, open-source, excellent at JSON)
+# - openrouter/google/gemini-2.5-flash (extremely cheap & fast, requires allow_closed_models=true)
+# - openrouter/anthropic/claude-3.5-haiku (fast & logical, requires allow_closed_models=true)
+eval_model: openrouter/meta-llama/llama-3.3-70b-instruct

@@ -20,7 +20,7 @@ def render_one_pager(bundle: FindingsBundle) -> str:
         else "#a32626"
     )
 
-    return f"""<!doctype html>
+    html = f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -154,9 +154,40 @@ def render_one_pager(bundle: FindingsBundle) -> str:
         <ul>{_render_list(bundle.evidence_gaps)}</ul>
       </article>
     </section>
+"""
 
+    optional_sections = {
+        "market_landscape": "Market Landscape",
+        "financial_analysis": "Financial Analysis",
+        "product_technology": "Product & Technology",
+        "founder_assessment": "Founder Assessment",
+        "gtm_momentum": "GTM Momentum",
+        "regulatory_compliance": "Regulatory & Compliance",
+        "portfolio_health": "Portfolio Health",
+        "support_recommendations": "Support Recommendations",
+    }
+    
+    extra_cards = []
+    for key, title in optional_sections.items():
+        if key in bundle.sections:
+            extra_cards.append(
+                f'''      <article class="card">
+        <h2>{title}</h2>
+        <p>{escape(bundle.sections[key])}</p>
+      </article>'''
+            )
+            
+    if extra_cards:
+        # Group cards into chunks of 3 for the grid
+        chunks = [extra_cards[i:i + 3] for i in range(0, len(extra_cards), 3)]
+        for chunk in chunks:
+            grid_html = '\n'.join(chunk)
+            html += f'\n    <section class="grid">\n{grid_html}\n    </section>\n'
+
+    html += """
     <div class="footer">Rendered from a deterministic findings bundle with no external assets.</div>
   </main>
 </body>
 </html>
 """
+    return html

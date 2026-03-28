@@ -1,0 +1,9 @@
+company_name: "CureScan AI"
+website: "https://example.com/curescan"
+sector: "healthtech"
+stage: "Seed"
+geography: "India"
+one_line: "AI co-pilot for radiologists to triage fast-track scans."
+questions:
+  - "Have they received CDSCO or FDA approvals?"
+  - "Are they selling directly to clinics or via PACS integration?"
