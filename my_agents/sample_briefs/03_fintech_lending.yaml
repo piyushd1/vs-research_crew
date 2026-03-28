@@ -1,0 +1,9 @@
+company_name: "ClearPay BNPL"
+website: "https://example.com/clearpay"
+sector: "lending"
+stage: "Series B"
+geography: "India"
+one_line: "Checkout financing platform for MSME B2B merchants."
+investment_thesis: |
+  Credit penetration for SME buyers remains extremely low. ClearPay partners with anchor brands to finance their distributors.
+focus_instructions: "Focus heavily on RBI compliance and Non-Performing Asset (NPA) ratios."

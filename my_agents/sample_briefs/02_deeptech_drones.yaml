@@ -1,0 +1,12 @@
+company_name: "AeroDynamics India"
+website: "https://example.com/aerodynamics"
+sector: "drones"
+stage: "Pre-Series A"
+geography: "India"
+one_line: "B2B Drone-as-a-Service for heavy logistics in remote terrains."
+investment_thesis: |
+  Government defense contracts and mapping requirements make commercial enterprise drones highly sticky revenue.
+questions:
+  - "Do they have regulatory clearance from DGCA?"
+  - "Are they dependent on Chinese imports for components?"
+exclude_instructions: "Ignore consumer drone features and event photography aspects."
