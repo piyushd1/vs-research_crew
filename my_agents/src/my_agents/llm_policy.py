@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import os
-from typing import Iterable
 
 from my_agents.schemas import LLMConfig, LLMProvider
 
@@ -27,12 +27,6 @@ DEFAULT_OPEN_SOURCE_HINTS = (
 )
 
 
-def _lowered_candidates(model: str) -> list[str]:
-    model_l = model.lower().strip()
-    pieces = [model_l]
-    if "/" in model_l:
-        pieces.extend(segment for segment in model_l.split("/") if segment)
-    return pieces
 
 
 def is_allowed_open_source_model(model: str, prefixes: Iterable[str]) -> bool:
@@ -98,9 +92,8 @@ def build_llm(config: LLMConfig):
     )
 
 def build_eval_llm(config: LLMConfig):
-    from crewai.llm import LLM
     if not config.eval_model:
         return build_llm(config)
-        
+
     eval_config = config.model_copy(update={"model": config.eval_model})
     return build_llm(eval_config)
