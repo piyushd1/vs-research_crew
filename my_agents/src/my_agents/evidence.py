@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from my_agents.schemas import (
     AgentFindingResult,
@@ -78,7 +78,8 @@ class EvidenceRegistry:
     def deterministic_audit(self, required_citations: bool = True) -> AuditResult:
         issues: list[AuditIssue] = []
         gaps: list[str] = []
-        for finding in self.findings():
+        findings_list = self.findings()
+        for finding in findings_list:
             if required_citations and not finding.source_ref:
                 issues.append(
                     AuditIssue(
@@ -99,7 +100,7 @@ class EvidenceRegistry:
                     )
                 )
 
-        if not self.findings():
+        if not findings_list:
             gaps.append("No specialist findings were produced.")
 
         return AuditResult(
