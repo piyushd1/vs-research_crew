@@ -81,7 +81,10 @@ class ControllerNormalizationTests(unittest.TestCase):
         )
 
         self.assertEqual(normalized.agent_name, "startup_sourcer")
-        self.assertEqual([item.for_agent for item in normalized.downstream_flags], ["thesis_fit_analyst"])
+        self.assertEqual(
+            [item.for_agent for item in normalized.downstream_flags],
+            ["thesis_fit_analyst"],
+        )
         self.assertEqual(
             [item.dimension for item in normalized.dimension_scores],
             ["market_size_and_growth"],

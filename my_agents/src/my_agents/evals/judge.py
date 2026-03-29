@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
+from my_agents.configuration import AppConfig
 from my_agents.llm_policy import build_eval_llm
 from my_agents.runner import CrewAIAgentRunner
 from my_agents.schemas import AgentSpec, Brief, FindingsBundle, VCRubric
-from my_agents.configuration import AppConfig
+
 
 def evaluate_run(
     brief: Brief,
@@ -60,4 +58,4 @@ def evaluate_run(
         llm=llm,
         tools=[],  # Eval judge just reads the bundle, no tools.
         verbose=verbose,
-    ) # type: ignore
+    )  # type: ignore

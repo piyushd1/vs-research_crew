@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
 
 from my_agents.schemas import Brief, RunRequest
 
@@ -16,7 +15,9 @@ class QuickModeTests(unittest.TestCase):
         self.assertEqual(req.workflow.value, "sourcing")
 
     def test_run_request_fails_if_no_company_or_brief(self) -> None:
-        with self.assertRaisesRegex(ValueError, "Either --brief or --company is required"):
+        with self.assertRaisesRegex(
+            ValueError, "Either --brief or --company is required"
+        ):
             RunRequest()
 
     def test_brief_schema_defaults(self) -> None:
@@ -30,7 +31,9 @@ class QuickModeTests(unittest.TestCase):
         self.assertEqual(brief.sector, "general")
         self.assertEqual(brief.stage, "unknown")
         self.assertEqual(brief.geography, "India")
-        self.assertEqual(brief.focus_instructions, "Focus on battery manufacturing capabilities")
+        self.assertEqual(
+            brief.focus_instructions, "Focus on battery manufacturing capabilities"
+        )
         self.assertEqual(brief.exclude_instructions, "Ignore their early prototypes")
 
     def test_brief_schema_validation_fails_without_company_name(self) -> None:

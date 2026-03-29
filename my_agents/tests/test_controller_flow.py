@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from my_agents.controller import VCResearchController
@@ -15,8 +15,8 @@ from my_agents.schemas import (
     FindingsBundle,
     OutputProfile,
     RunRequest,
-    ScorecardSummary,
     RunState,
+    ScorecardSummary,
     WorkflowType,
 )
 
@@ -68,7 +68,9 @@ class FakeRunner:
                     "open_questions": "Questions",
                     "next_steps": "Next steps",
                 },
-                scorecard=ScorecardSummary(overall_score=75.0, recommendation="Investigate"),
+                scorecard=ScorecardSummary(
+                    overall_score=75.0, recommendation="Investigate"
+                ),
                 top_signals=["Strong category pull"],
                 top_risks=["Channel concentration"],
                 citations=["brief://company"],
@@ -98,7 +100,9 @@ class ControllerFlowTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
-    def run_workflow_profile_test(self, workflow: WorkflowType, profile: OutputProfile) -> None:
+    def run_workflow_profile_test(
+        self, workflow: WorkflowType, profile: OutputProfile
+    ) -> None:
         controller = VCResearchController(
             runner=FakeRunner(),
             project_root=self.project_root,
@@ -118,10 +122,15 @@ class ControllerFlowTests(unittest.TestCase):
 
         # Check expected outputs
         if profile == OutputProfile.ONE_PAGER:
-            self.assertTrue(artifacts.one_pager_path is not None and artifacts.one_pager_path.exists())
+            self.assertTrue(
+                artifacts.one_pager_path is not None
+                and artifacts.one_pager_path.exists()
+            )
         else:
-            self.assertTrue(artifacts.pdf_path is None or artifacts.pdf_path.exists())  # PDF can fail but shouldn't crash
-            
+            self.assertTrue(
+                artifacts.pdf_path is None or artifacts.pdf_path.exists()
+            )  # PDF can fail but shouldn't crash
+
     # Matrix tests: 3 workflows X 3 profiles
     def test_sourcing_ic_memo(self) -> None:
         self.run_workflow_profile_test(WorkflowType.SOURCING, OutputProfile.IC_MEMO)
@@ -133,19 +142,27 @@ class ControllerFlowTests(unittest.TestCase):
         self.run_workflow_profile_test(WorkflowType.SOURCING, OutputProfile.ONE_PAGER)
 
     def test_due_diligence_ic_memo(self) -> None:
-        self.run_workflow_profile_test(WorkflowType.DUE_DILIGENCE, OutputProfile.IC_MEMO)
+        self.run_workflow_profile_test(
+            WorkflowType.DUE_DILIGENCE, OutputProfile.IC_MEMO
+        )
 
     def test_due_diligence_full_report(self) -> None:
-        self.run_workflow_profile_test(WorkflowType.DUE_DILIGENCE, OutputProfile.FULL_REPORT)
+        self.run_workflow_profile_test(
+            WorkflowType.DUE_DILIGENCE, OutputProfile.FULL_REPORT
+        )
 
     def test_due_diligence_one_pager(self) -> None:
-        self.run_workflow_profile_test(WorkflowType.DUE_DILIGENCE, OutputProfile.ONE_PAGER)
+        self.run_workflow_profile_test(
+            WorkflowType.DUE_DILIGENCE, OutputProfile.ONE_PAGER
+        )
 
     def test_portfolio_ic_memo(self) -> None:
         self.run_workflow_profile_test(WorkflowType.PORTFOLIO, OutputProfile.IC_MEMO)
 
     def test_portfolio_full_report(self) -> None:
-        self.run_workflow_profile_test(WorkflowType.PORTFOLIO, OutputProfile.FULL_REPORT)
+        self.run_workflow_profile_test(
+            WorkflowType.PORTFOLIO, OutputProfile.FULL_REPORT
+        )
 
     def test_portfolio_one_pager(self) -> None:
         self.run_workflow_profile_test(WorkflowType.PORTFOLIO, OutputProfile.ONE_PAGER)
@@ -166,7 +183,9 @@ class ControllerFlowTests(unittest.TestCase):
         self.assertTrue(artifacts.report_path.exists())
         state = json.loads(artifacts.run_state_path.read_text(encoding="utf-8"))
         self.assertEqual(state["company_name"], "QuickModeCorp")
-        self.assertIn("QuickModeCorp", artifacts.run_state_path.read_text(encoding="utf-8"))
+        self.assertIn(
+            "QuickModeCorp", artifacts.run_state_path.read_text(encoding="utf-8")
+        )
 
     def test_resume_from_failed_state(self) -> None:
         controller1 = VCResearchController(
@@ -178,32 +197,38 @@ class ControllerFlowTests(unittest.TestCase):
             company_name="ResumeCo",
             approve_mode=ApproveMode.AUTO,
         )
-        
+
         with patch("my_agents.controller.build_llm", return_value=object()):
-            with self.assertRaisesRegex(RuntimeError, "Simulated failure in founder_signal_analyst"):
+            with self.assertRaisesRegex(
+                RuntimeError, "Simulated failure in founder_signal_analyst"
+            ):
                 controller1.run(request1)
-                
+
         # Find the run_dir
         runs_dir = self.project_root / "runs" / "resumeco"
         subdirs = list(runs_dir.iterdir())
         self.assertEqual(len(subdirs), 1)
         run_dir = subdirs[0]
-        
-        state1 = RunState.model_validate_json((run_dir / "run_state.json").read_text("utf-8"))
+
+        state1 = RunState.model_validate_json(
+            (run_dir / "run_state.json").read_text("utf-8")
+        )
         self.assertIn("founder_signal_analyst", state1.pending_agents)
-        
+
         # Now resume
         controller2 = VCResearchController(
             runner=FakeRunner(),  # No failure this time
             project_root=self.project_root,
         )
         request2 = RunRequest(resume=run_dir, approve_mode=ApproveMode.AUTO)
-        
+
         with patch("my_agents.controller.build_llm", return_value=object()):
             artifacts = controller2.run(request2)
-            
+
         self.assertTrue(artifacts.report_path.exists())
-        state2 = RunState.model_validate_json(artifacts.run_state_path.read_text("utf-8"))
+        state2 = RunState.model_validate_json(
+            artifacts.run_state_path.read_text("utf-8")
+        )
         self.assertEqual(len(state2.pending_agents), 0)
 
 

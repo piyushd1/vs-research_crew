@@ -5,7 +5,12 @@ from pathlib import Path
 
 import httpx
 
-from my_agents.schemas import FindingsBundle, IntegrationsConfig, OutputProfile, WorkflowType
+from my_agents.schemas import (
+    FindingsBundle,
+    IntegrationsConfig,
+    OutputProfile,
+    WorkflowType,
+)
 
 
 LINEAR_URL = "https://api.linear.app/graphql"
@@ -18,7 +23,9 @@ def build_linear_issue_payload(
     run_dir: Path,
 ) -> dict[str, object]:
     top_risks = "\n".join(f"- {risk}" for risk in bundle.top_risks[:3]) or "- None"
-    top_signals = "\n".join(f"- {signal}" for signal in bundle.top_signals[:3]) or "- None"
+    top_signals = (
+        "\n".join(f"- {signal}" for signal in bundle.top_signals[:3]) or "- None"
+    )
     description = (
         f"Workflow: {workflow.value}\n"
         f"Output profile: {output_profile.value}\n"

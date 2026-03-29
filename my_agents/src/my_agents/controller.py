@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from datetime import datetime, timezone
 import json
 import logging
-import sys
-from datetime import datetime, timezone
 import os
 from pathlib import Path
-from typing import Callable
+import sys
 
 from dotenv import load_dotenv
 
-from my_agents.configuration import DEFAULT_CONFIG_DIR, AppConfig, load_app_config, load_brief
+from my_agents.configuration import (
+    DEFAULT_CONFIG_DIR,
+    AppConfig,
+    load_app_config,
+    load_brief,
+)
 from my_agents.evidence import EvidenceRegistry, combine_open_questions
 from my_agents.integrations.linear_push import push_linear_issue
 from my_agents.llm_policy import build_llm
@@ -47,10 +52,11 @@ class JSONFormatter(logging.Formatter):
             "name": record.name,
         }
         if hasattr(record, "step"):
-            data["step"] = getattr(record, "step")
+            data["step"] = record.step
         if hasattr(record, "agent"):
-            data["agent"] = getattr(record, "agent")
+            data["agent"] = record.agent
         return json.dumps(data)
+
 
 class VCResearchController:
     def __init__(
@@ -70,28 +76,40 @@ class VCResearchController:
     def run(self, request: RunRequest) -> RunArtifacts:
         self._load_project_env()
         config = load_app_config(request.config_dir or DEFAULT_CONFIG_DIR)
-        
+
         if request.eval_only_dir:
             run_dir = Path(request.eval_only_dir).resolve()
             bundle_path = run_dir / "findings_bundle.json"
             if not bundle_path.exists():
-                raise FileNotFoundError(f"findings_bundle.json not found in {run_dir}. Cannot evaluate.")
-            
-            from my_agents.schemas import FindingsBundle, Brief
-            bundle = FindingsBundle.model_validate_json(bundle_path.read_text(encoding="utf-8"))
-            brief = Brief(company_name=bundle.company_name, sector="general", geography="India")
-            
+                raise FileNotFoundError(
+                    f"findings_bundle.json not found in {run_dir}. Cannot evaluate."
+                )
+
+            from my_agents.schemas import Brief, FindingsBundle
+
+            bundle = FindingsBundle.model_validate_json(
+                bundle_path.read_text(encoding="utf-8")
+            )
+            brief = Brief(
+                company_name=bundle.company_name, sector="general", geography="India"
+            )
+
             self.print_fn(f"\nEvaluating existing run: {run_dir}")
             from my_agents.evals.judge import evaluate_run
+
             try:
-                rubric = evaluate_run(brief, bundle, config, runner=self.runner, verbose=request.verbose)
+                rubric = evaluate_run(
+                    brief, bundle, config, runner=self.runner, verbose=request.verbose
+                )
                 eval_path = run_dir / "eval_score.json"
                 eval_path.write_text(rubric.model_dump_json(indent=2), encoding="utf-8")
-                self.print_fn(f"Evaluation Complete! Score: {rubric.final_eval_score}/100")
+                self.print_fn(
+                    f"Evaluation Complete! Score: {rubric.final_eval_score}/100"
+                )
                 self.print_fn(f"Feedback: {rubric.summary_feedback}")
             except Exception as ev_exc:
                 self.print_fn(f"Warning: Evals skipped due to error: {ev_exc}")
-                
+
             return RunArtifacts(
                 run_dir=run_dir,
                 report_path=run_dir / "report.md",
@@ -100,13 +118,13 @@ class VCResearchController:
                 run_state_path=run_dir / "run_state.json",
                 bundle_path=bundle_path,
             )
-            
+
         for warning in config.warnings:
             self.print_fn(f"Warning: {warning}")
 
         brief, run_dir, state = self._prepare_run_context(config, request)
         self._configure_local_crewai_environment(run_dir)
-        
+
         logger = logging.getLogger(f"vc_research.{state.company_name}")
         logger.setLevel(logging.INFO)
         fh = None
@@ -114,7 +132,7 @@ class VCResearchController:
             fh = logging.FileHandler(run_dir / "execution.log", encoding="utf-8")
             fh.setFormatter(JSONFormatter())
             logger.addHandler(fh)
-            
+
         logger.info(f"Initialized run for {state.company_name}", extra={"step": "init"})
 
         selected_profile = state.output_profile
@@ -149,10 +167,13 @@ class VCResearchController:
             )
             tools = build_tools(brief, source_profile, task.agent)
             self._write_run_state(run_dir, state, workflow)
-            
-            logger.info(f"Starting agent: {task.agent}", extra={"step": "agent_start", "agent": task.agent})
+
+            logger.info(
+                f"Starting agent: {task.agent}",
+                extra={"step": "agent_start", "agent": task.agent},
+            )
             self.print_fn(f"\n[bold green]Starting Agent: {task.agent}[/]")
-            
+
             result = self.runner.run_agent(
                 agent_name=task.agent,
                 spec=config.agents[task.agent],
@@ -174,10 +195,10 @@ class VCResearchController:
             self._persist_agent_result(run_dir, result)
             evidence.add_result(result)
             state.findings[task.agent] = result
-            
+
             logger.info(
-                f"Completed agent: {task.agent}", 
-                extra={"step": "agent_complete", "agent": task.agent}
+                f"Completed agent: {task.agent}",
+                extra={"step": "agent_complete", "agent": task.agent},
             )
             state.completed_agents.append(
                 CompletedAgentState(
@@ -200,7 +221,10 @@ class VCResearchController:
                 state.last_updated = self.now_fn()
                 self._write_run_state(run_dir, state, workflow)
                 if action == ApprovalAction.ABORT:
-                    logger.warning("Run aborted at manual checkpoint", extra={"step": "checkpoint", "agent": task.agent})
+                    logger.warning(
+                        "Run aborted at manual checkpoint",
+                        extra={"step": "checkpoint", "agent": task.agent},
+                    )
                     raise SystemExit("Run aborted at manual checkpoint.")
 
         logger.info("Starting synthesis and audit", extra={"step": "synthesis"})
@@ -236,7 +260,9 @@ class VCResearchController:
             report_path.write_text(report_text, encoding="utf-8")
             candidate_pdf_path = run_dir / "report.pdf"
             try:
-                export_pdf(report_text, candidate_pdf_path, f"{brief.company_name} IC Memo")
+                export_pdf(
+                    report_text, candidate_pdf_path, f"{brief.company_name} IC Memo"
+                )
                 pdf_path = candidate_pdf_path
             except Exception as exc:
                 self.print_fn(f"Warning: PDF export skipped due to error: {exc}")
@@ -245,7 +271,9 @@ class VCResearchController:
             report_path.write_text(report_text, encoding="utf-8")
             candidate_pdf_path = run_dir / "report.pdf"
             try:
-                export_pdf(report_text, candidate_pdf_path, f"{brief.company_name} Full Report")
+                export_pdf(
+                    report_text, candidate_pdf_path, f"{brief.company_name} Full Report"
+                )
                 pdf_path = candidate_pdf_path
             except Exception as exc:
                 self.print_fn(f"Warning: PDF export skipped due to error: {exc}")
@@ -265,20 +293,25 @@ class VCResearchController:
             )
         except Exception as exc:
             self.print_fn(f"Warning: Linear push skipped due to error: {exc}")
-            
+
         if request.run_evals:
             self.print_fn("\nRunning VC Evaluation Judge...")
             logger.info("Starting subjective evaluations", extra={"step": "evaluate"})
             from my_agents.evals.judge import evaluate_run
+
             try:
-                rubric = evaluate_run(brief, bundle, config, runner=self.runner, verbose=request.verbose)
+                rubric = evaluate_run(
+                    brief, bundle, config, runner=self.runner, verbose=request.verbose
+                )
                 eval_path = run_dir / "eval_score.json"
                 eval_path.write_text(rubric.model_dump_json(indent=2), encoding="utf-8")
-                self.print_fn(f"Evaluation Complete! Score: {rubric.final_eval_score}/100")
+                self.print_fn(
+                    f"Evaluation Complete! Score: {rubric.final_eval_score}/100"
+                )
                 self.print_fn(f"Feedback: {rubric.summary_feedback}")
             except Exception as ev_exc:
                 self.print_fn(f"Warning: Evals skipped due to error: {ev_exc}")
-            
+
         self._update_latest_symlink(run_dir)
         logger.info("Run finished", extra={"step": "finish"})
 
@@ -331,9 +364,9 @@ class VCResearchController:
         elif request.company_name:
             brief = Brief(
                 company_name=request.company_name,
-                sector=request.sector,
-                stage=request.stage,
-                geography=request.geography,
+                sector=request.sector or "general",
+                stage=request.stage or "unknown",
+                geography=request.geography or "India",
                 focus_instructions=request.focus_instructions,
                 exclude_instructions=request.exclude_instructions,
             )
@@ -346,7 +379,9 @@ class VCResearchController:
         timestamp = self.now_fn().strftime("%Y-%m-%d_%H%M%S")
         run_dir = runs_root / company_slug / timestamp
         (run_dir / "findings").mkdir(parents=True, exist_ok=True)
-        (run_dir / "brief.json").write_text(brief.model_dump_json(indent=2), encoding="utf-8")
+        (run_dir / "brief.json").write_text(
+            brief.model_dump_json(indent=2), encoding="utf-8"
+        )
 
         workflow = config.workflows[request.workflow.value]
         state = RunState(
@@ -386,7 +421,9 @@ class VCResearchController:
     ) -> str:
         spec = config.agents[task.agent]
         injected_flags = self._consume_flags_for_agent(state, task.agent)
-        source_notes = "\n".join(f"- {source}" for source in source_profile.india_priority_sources)
+        source_notes = "\n".join(
+            f"- {source}" for source in source_profile.india_priority_sources
+        )
         injected_context = ""
         if injected_flags:
             rendered_flags = "\n".join(
@@ -416,8 +453,7 @@ class VCResearchController:
             founder_signal_block = (
                 "Use this founder-signal fallback hierarchy and explicitly record missing signals:\n"
                 + "\n".join(
-                    f"- {item}"
-                    for item in source_profile.founder_signal_sources
+                    f"- {item}" for item in source_profile.founder_signal_sources
                 )
                 + "\n"
             )
@@ -439,7 +475,8 @@ class VCResearchController:
             )
 
         workflow_agent_ids = "\n".join(
-            f"- {workflow_task.agent}" for workflow_task in config.workflows[state.workflow.value].tasks
+            f"- {workflow_task.agent}"
+            for workflow_task in config.workflows[state.workflow.value].tasks
         )
         control_agent_ids = "\n".join(
             f"- {name}" for name in ("evidence_auditor", "report_synthesizer")
@@ -521,7 +558,9 @@ class VCResearchController:
         verbose: bool,
     ) -> FindingsBundle:
         scorecard = self._build_scorecard(list(state.findings.values()), weights)
-        fallback_bundle = self._build_fallback_bundle(config, brief, state, evidence, audit, scorecard)
+        fallback_bundle = self._build_fallback_bundle(
+            config, brief, state, evidence, audit, scorecard
+        )
         prompt = (
             "Synthesize the VC diligence record into a structured findings bundle.\n\n"
             f"Company: {brief.company_name}\n"
@@ -570,28 +609,37 @@ class VCResearchController:
         all_findings = evidence.findings()
         summaries = [result.summary for result in state.findings.values()]
         top_risks = [issue.detail for issue in audit.issues[:3]]
-        
+
         all_sections = {
-            "executive_summary": "\n".join(summaries[:3]) or "No executive summary available.",
+            "executive_summary": "\n".join(summaries[:3])
+            or "No executive summary available.",
             "company_snapshot": state.findings.get("startup_sourcer", None).summary
             if state.findings.get("startup_sourcer")
             else f"{brief.company_name} operates in {brief.sector} at {brief.stage} stage.",
             "market_landscape": state.findings.get("market_mapper", None).summary
             if state.findings.get("market_mapper")
             else "Market landscape not explicitly mapped.",
-            "financial_analysis": state.findings.get("financial_researcher", None).summary
+            "financial_analysis": state.findings.get(
+                "financial_researcher", None
+            ).summary
             if state.findings.get("financial_researcher")
             else "Financial analysis not available.",
-            "product_technology": state.findings.get("product_tech_researcher", None).summary
+            "product_technology": state.findings.get(
+                "product_tech_researcher", None
+            ).summary
             if state.findings.get("product_tech_researcher")
             else "Product and technology analysis not available.",
-            "founder_assessment": state.findings.get("founder_signal_analyst", None).summary
+            "founder_assessment": state.findings.get(
+                "founder_signal_analyst", None
+            ).summary
             if state.findings.get("founder_signal_analyst")
             else "Founder assessment not available.",
             "gtm_momentum": state.findings.get("marketing_gtm_researcher", None).summary
             if state.findings.get("marketing_gtm_researcher")
             else "GTM analysis not available.",
-            "regulatory_compliance": state.findings.get("india_regulatory_legal_analyst", None).summary
+            "regulatory_compliance": state.findings.get(
+                "india_regulatory_legal_analyst", None
+            ).summary
             if state.findings.get("india_regulatory_legal_analyst")
             else "Regulatory analysis not available.",
             "risk_register": state.findings.get("risk_red_team_analyst", None).summary
@@ -600,7 +648,9 @@ class VCResearchController:
             "portfolio_health": state.findings.get("portfolio_monitor", None).summary
             if state.findings.get("portfolio_monitor")
             else "Portfolio health not available.",
-            "support_recommendations": state.findings.get("growth_ops_analyst", None).summary
+            "support_recommendations": state.findings.get(
+                "growth_ops_analyst", None
+            ).summary
             if state.findings.get("growth_ops_analyst")
             else "Support recommendations not available.",
             "investment_recommendation": (
@@ -615,12 +665,15 @@ class VCResearchController:
                 f"- {finding.claim}" for finding in all_findings[:3]
             )
             or "No signals recorded.",
-            "top_risks": "\n".join(f"- {risk}" for risk in top_risks) or "No risks recorded.",
+            "top_risks": "\n".join(f"- {risk}" for risk in top_risks)
+            or "No risks recorded.",
             "open_questions": "\n".join(
-                f"- {question}" for question in combine_open_questions(state.findings.values())
+                f"- {question}"
+                for question in combine_open_questions(state.findings.values())
             )
             or "No open questions recorded.",
-            "evidence_gaps": "\n".join(f"- {gap}" for gap in audit.gaps) or "No evidence gaps recorded.",
+            "evidence_gaps": "\n".join(f"- {gap}" for gap in audit.gaps)
+            or "No evidence gaps recorded.",
             "next_steps": "Validate unresolved open questions and decide whether to proceed, pass, or monitor.",
         }
 
@@ -721,9 +774,7 @@ class VCResearchController:
         allowed_agents = set(config.agents)
         allowed_dimensions = set(getattr(spec, "scoring_dimensions", []))
         normalized_flags = [
-            flag
-            for flag in result.downstream_flags
-            if flag.for_agent in allowed_agents
+            flag for flag in result.downstream_flags if flag.for_agent in allowed_agents
         ]
         normalized_scores = [
             score
@@ -747,9 +798,13 @@ class VCResearchController:
         payload = result.model_dump()
         payload["agent_name"] = agent_key
         payload["downstream_flags"] = [flag.model_dump() for flag in normalized_flags]
-        payload["dimension_scores"] = [score.model_dump() for score in normalized_scores]
+        payload["dimension_scores"] = [
+            score.model_dump() for score in normalized_scores
+        ]
         payload["suggested_section_keys"] = normalized_sections
-        payload["sources_checked"] = [source.model_dump() for source in normalized_sources]
+        payload["sources_checked"] = [
+            source.model_dump() for source in normalized_sources
+        ]
         return AgentFindingResult.model_validate(payload)
 
     def _write_run_state(
@@ -765,7 +820,9 @@ class VCResearchController:
         )
 
     def _consume_flags_for_agent(self, state: RunState, agent_name: str):
-        matching = [flag for flag in state.pending_flags if flag.for_agent == agent_name]
+        matching = [
+            flag for flag in state.pending_flags if flag.for_agent == agent_name
+        ]
         state.pending_flags = [
             flag for flag in state.pending_flags if flag.for_agent != agent_name
         ]

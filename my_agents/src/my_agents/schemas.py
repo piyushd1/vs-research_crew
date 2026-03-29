@@ -249,10 +249,12 @@ class WorkflowTaskDefinition(BaseModel):
     objective: str
     checkpoint: bool = False
 
+
 class FindingEval(BaseModel):
     finding_claim: str
     is_hallucination: bool
     rationale: str
+
 
 class VCRubric(BaseModel):
     relevance_score: int = Field(ge=1, le=10)
@@ -261,6 +263,7 @@ class VCRubric(BaseModel):
     negative_constraint_violations: list[str] = Field(default_factory=list)
     final_eval_score: int = Field(ge=0, le=100)
     summary_feedback: str
+
 
 class WorkflowConfig(BaseModel):
     workflow: WorkflowType
@@ -340,7 +343,7 @@ class RunRequest(BaseModel):
     eval_only_dir: Path | None = None
 
     @model_validator(mode="after")
-    def validate_run_request(self) -> "RunRequest":
+    def validate_run_request(self) -> RunRequest:
         if self.resume is None:
             has_brief = self.brief_path is not None
             has_company = self.company_name is not None

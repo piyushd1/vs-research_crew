@@ -14,7 +14,9 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Run the India-first VC research system."
     )
     parser.add_argument("--workflow", choices=[item.value for item in WorkflowType])
-    parser.add_argument("--brief", type=Path, help="Path to a company brief YAML or JSON file.")
+    parser.add_argument(
+        "--brief", type=Path, help="Path to a company brief YAML or JSON file."
+    )
     parser.add_argument(
         "--output-profile",
         default=OutputProfile.IC_MEMO.value,
@@ -36,8 +38,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--company", help="Company name for quick-mode research")
     parser.add_argument("--focus", help="Instructions on what to focus on")
     parser.add_argument("--exclude", help="Instructions on what to exclude")
-    parser.add_argument("--run-evals", action="store_true", help="Run LLM evaluation on output")
-    parser.add_argument("--eval-only-dir", type=Path, help="Run evals on an existing run directory")
+    parser.add_argument(
+        "--run-evals", action="store_true", help="Run LLM evaluation on output"
+    )
+    parser.add_argument(
+        "--eval-only-dir", type=Path, help="Run evals on an existing run directory"
+    )
     return parser
 
 
@@ -79,10 +85,6 @@ def replay():
 
 def train():
     raise SystemExit("Training is not implemented for this VC workflow app.")
-
-
-def test():
-    raise SystemExit("Use the project test suite instead of the starter template command.")
 
 
 if __name__ == "__main__":

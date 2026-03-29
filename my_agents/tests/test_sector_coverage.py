@@ -70,7 +70,9 @@ class SectorCoverageTests(unittest.TestCase):
         canonical_sectors = set(SECTOR_PROFILE_ALIASES.values())
         for sector in canonical_sectors:
             with self.subTest(sector=sector):
-                hints = SECTOR_SOURCE_HINTS.get(sector, SECTOR_SOURCE_HINTS.get("generic", []))
+                hints = SECTOR_SOURCE_HINTS.get(
+                    sector, SECTOR_SOURCE_HINTS.get("generic", [])
+                )
                 self.assertTrue(
                     len(hints) > 0,
                     f"No source hints found for canonical sector '{sector}'",
@@ -82,9 +84,19 @@ class SectorCoverageTests(unittest.TestCase):
 
     def test_all_alias_values_are_valid_canonical_sectors(self) -> None:
         valid_sectors = {
-            "agritech", "climate", "consumer", "cybersecurity", "d2c",
-            "deeptech", "edtech", "fintech", "healthtech", "logistics",
-            "marketplaces", "proptech", "saas_ai",
+            "agritech",
+            "climate",
+            "consumer",
+            "cybersecurity",
+            "d2c",
+            "deeptech",
+            "edtech",
+            "fintech",
+            "healthtech",
+            "logistics",
+            "marketplaces",
+            "proptech",
+            "saas_ai",
         }
         for alias, canonical in SECTOR_PROFILE_ALIASES.items():
             with self.subTest(alias=alias):

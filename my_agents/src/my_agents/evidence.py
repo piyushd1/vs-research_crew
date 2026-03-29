@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from my_agents.schemas import (
     AgentFindingResult,
@@ -24,7 +24,9 @@ def _normalize_key(finding: FindingRecord) -> str:
 class EvidenceRegistry:
     source_profile: SourcePriorityConfig
     findings_by_agent: dict[str, AgentFindingResult] = field(default_factory=dict)
-    _claims: dict[str, list[FindingRecord]] = field(default_factory=lambda: defaultdict(list))
+    _claims: dict[str, list[FindingRecord]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
 
     def add_result(self, result: AgentFindingResult) -> None:
         self.findings_by_agent[result.agent_name] = result
@@ -38,14 +40,21 @@ class EvidenceRegistry:
         if len(claim_records) < 2:
             return
 
-        distinct_values = {record.claim_value or record.evidence_summary for record in claim_records}
+        distinct_values = {
+            record.claim_value or record.evidence_summary for record in claim_records
+        }
         if len(distinct_values) < 2:
             return
 
-        tiers = [self.source_profile.tiers.get(record.source_type, 99) for record in claim_records]
+        tiers = [
+            self.source_profile.tiers.get(record.source_type, 99)
+            for record in claim_records
+        ]
         highest = min(tiers)
         lowest = max(tiers)
-        conflict_level = ConflictLevel.HIGH if highest <= 2 < lowest else ConflictLevel.MEDIUM
+        conflict_level = (
+            ConflictLevel.HIGH if highest <= 2 < lowest else ConflictLevel.MEDIUM
+        )
         for record in claim_records:
             record.conflict_level = conflict_level
 
@@ -64,7 +73,9 @@ class EvidenceRegistry:
             if key in seen:
                 continue
             seen.add(key)
-            unique.append({"source_ref": finding.source_ref, "source_type": finding.source_type})
+            unique.append(
+                {"source_ref": finding.source_ref, "source_type": finding.source_type}
+            )
         return unique
 
     def summary(self, limit: int = 10) -> str:

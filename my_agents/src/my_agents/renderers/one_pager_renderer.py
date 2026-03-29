@@ -166,22 +166,22 @@ def render_one_pager(bundle: FindingsBundle) -> str:
         "portfolio_health": "Portfolio Health",
         "support_recommendations": "Support Recommendations",
     }
-    
+
     extra_cards = []
     for key, title in optional_sections.items():
         if key in bundle.sections:
             extra_cards.append(
-                f'''      <article class="card">
+                f"""      <article class="card">
         <h2>{title}</h2>
         <p>{escape(bundle.sections[key])}</p>
-      </article>'''
+      </article>"""
             )
-            
+
     if extra_cards:
         # Group cards into chunks of 3 for the grid
-        chunks = [extra_cards[i:i + 3] for i in range(0, len(extra_cards), 3)]
+        chunks = [extra_cards[i : i + 3] for i in range(0, len(extra_cards), 3)]
         for chunk in chunks:
-            grid_html = '\n'.join(chunk)
+            grid_html = "\n".join(chunk)
             html += f'\n    <section class="grid">\n{grid_html}\n    </section>\n'
 
     html += """

@@ -44,7 +44,9 @@ def render_full_report(bundle: FindingsBundle) -> str:
         for dimension in bundle.scorecard.dimensions
     )
     lines.extend(["", "## Top Signals"])
-    lines.extend(f"- {item}" for item in bundle.top_signals or ["No top signals recorded."])
+    lines.extend(
+        f"- {item}" for item in bundle.top_signals or ["No top signals recorded."]
+    )
     lines.extend(["", "## Top Risks"])
     lines.extend(f"- {item}" for item in bundle.top_risks or ["No top risks recorded."])
     lines.extend(["", "## Open Questions"])

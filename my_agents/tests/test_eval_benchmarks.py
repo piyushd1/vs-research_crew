@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
 import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from my_agents.main import run
 from my_agents.schemas import (
     AgentFindingResult,
     AuditResult,
-    FindingsBundle,
     FindingRecord,
+    FindingsBundle,
     ScorecardSummary,
-    WorkflowType,
     VCRubric,
+    WorkflowType,
 )
 
 
@@ -60,7 +60,9 @@ class FakeRunnerForEvals:
                     "executive_summary": "Summary",
                     "company_snapshot": "Snapshot",
                 },
-                scorecard=ScorecardSummary(overall_score=75.0, recommendation="Investigate"),
+                scorecard=ScorecardSummary(
+                    overall_score=75.0, recommendation="Investigate"
+                ),
             )
         if response_model is VCRubric:
             return VCRubric(
@@ -80,17 +82,21 @@ class EvalBenchmarkTests(unittest.TestCase):
             project_root = Path(tmp_dir)
             with patch(
                 "my_agents.controller.VCResearchController.__init__",
-                lambda self, runner=None, prompt_fn=None, print_fn=None, now_fn=None, project_root_arg=None: setattr(
-                    self, "runner", FakeRunnerForEvals()
-                )
-                or setattr(self, "prompt_fn", input)
-                or setattr(self, "print_fn", print)
-                or setattr(self, "now_fn", __import__("datetime").datetime.now)
-                or setattr(self, "project_root", project_root),
+                lambda self, runner=None, prompt_fn=None, print_fn=None, now_fn=None, project_root_arg=None: (
+                    setattr(self, "runner", FakeRunnerForEvals())
+                    or setattr(self, "prompt_fn", input)
+                    or setattr(self, "print_fn", print)
+                    or setattr(self, "now_fn", __import__("datetime").datetime.now)
+                    or setattr(self, "project_root", project_root)
+                ),
             ):
-                with patch("my_agents.controller.VCResearchController._load_project_env"):
+                with patch(
+                    "my_agents.controller.VCResearchController._load_project_env"
+                ):
                     with patch("my_agents.controller.build_llm", return_value=object()):
-                        with patch("my_agents.llm_policy.build_eval_llm", return_value=object()):
+                        with patch(
+                            "my_agents.llm_policy.build_eval_llm", return_value=object()
+                        ):
                             with patch("logging.FileHandler") as mock_fh:
                                 mock_fh.return_value.level = 0
                                 run(
@@ -114,7 +120,9 @@ class EvalBenchmarkTests(unittest.TestCase):
             run_dir = run_dirs[0]
 
             self.assertTrue((run_dir / "eval_score.json").exists())
-            eval_data = VCRubric.model_validate_json((run_dir / "eval_score.json").read_text())
+            eval_data = VCRubric.model_validate_json(
+                (run_dir / "eval_score.json").read_text()
+            )
             self.assertEqual(eval_data.final_eval_score, 88)
 
 

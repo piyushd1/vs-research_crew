@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 import os
-from typing import Iterable
 
 from my_agents.schemas import LLMConfig, LLMProvider
 
@@ -43,7 +43,9 @@ def is_allowed_open_source_model(model: str, prefixes: Iterable[str]) -> bool:
 
 def normalize_model_name(config: LLMConfig) -> str:
     model = config.model.strip()
-    if config.provider == LLMProvider.OPENROUTER and not model.startswith("openrouter/"):
+    if config.provider == LLMProvider.OPENROUTER and not model.startswith(
+        "openrouter/"
+    ):
         return f"openrouter/{model}"
     if config.provider == LLMProvider.OLLAMA and not model.startswith("ollama/"):
         return f"ollama/{model}"
@@ -97,10 +99,10 @@ def build_llm(config: LLMConfig):
         max_tokens=config.max_tokens,
     )
 
+
 def build_eval_llm(config: LLMConfig):
-    from crewai.llm import LLM
     if not config.eval_model:
         return build_llm(config)
-        
+
     eval_config = config.model_copy(update={"model": config.eval_model})
     return build_llm(eval_config)

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import os
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -220,7 +220,9 @@ class AppConfig:
                 + ", ".join(["base", *sorted(self.source_overlays)])
             )
         if selected_profile and selected_profile in self.source_overlays:
-            overlay_payload = self.source_overlays[selected_profile].model_dump(exclude_unset=True)
+            overlay_payload = self.source_overlays[selected_profile].model_dump(
+                exclude_unset=True
+            )
             base_payload["profile"] = selected_profile
             base_payload["tiers"].update(overlay_payload.get("tiers", {}))
             for field in ("india_priority_sources", "founder_signal_sources"):
@@ -267,7 +269,9 @@ def _load_output_profiles(config_dir: Path) -> dict[str, OutputProfileConfig]:
     }
 
 
-def _load_scorecards(config_dir: Path) -> tuple[dict[str, int], dict[str, dict[str, int]]]:
+def _load_scorecards(
+    config_dir: Path,
+) -> tuple[dict[str, int], dict[str, dict[str, int]]]:
     scorecard_dir = config_dir / "scorecard"
     base = load_yaml(scorecard_dir / "weights_base.yaml")
     overlays = {}
@@ -278,15 +282,19 @@ def _load_scorecards(config_dir: Path) -> tuple[dict[str, int], dict[str, dict[s
     return base, overlays
 
 
-def _load_sources(config_dir: Path) -> tuple[SourcePriorityConfig, dict[str, SourcePriorityConfig]]:
+def _load_sources(
+    config_dir: Path,
+) -> tuple[SourcePriorityConfig, dict[str, SourcePriorityConfig]]:
     source_dir = config_dir / "sources"
-    base = SourcePriorityConfig.model_validate(load_yaml(source_dir / "priority_base.yaml"))
+    base = SourcePriorityConfig.model_validate(
+        load_yaml(source_dir / "priority_base.yaml")
+    )
     overlays = {}
     for path in sorted(source_dir.glob("priority_*.yaml")):
         if path.stem == "priority_base":
             continue
-        overlays[path.stem.replace("priority_", "", 1)] = SourcePriorityConfig.model_validate(
-            load_yaml(path)
+        overlays[path.stem.replace("priority_", "", 1)] = (
+            SourcePriorityConfig.model_validate(load_yaml(path))
         )
     return base, overlays
 

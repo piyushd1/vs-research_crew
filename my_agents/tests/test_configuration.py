@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import unittest
 
-from my_agents.configuration import DEFAULT_CONFIG_DIR, canonicalize_profile_key, load_app_config
+from my_agents.configuration import (
+    DEFAULT_CONFIG_DIR,
+    canonicalize_profile_key,
+    load_app_config,
+)
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -36,7 +40,9 @@ class ConfigurationTests(unittest.TestCase):
     def test_all_scorecards_sum_to_one_hundred(self) -> None:
         for sector in self.config.scorecard_overlays:
             with self.subTest(sector=sector):
-                self.assertEqual(sum(self.config.resolve_score_weights(sector).values()), 100)
+                self.assertEqual(
+                    sum(self.config.resolve_score_weights(sector).values()), 100
+                )
 
 
 if __name__ == "__main__":

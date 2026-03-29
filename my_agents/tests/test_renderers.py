@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import unittest
-from my_agents.schemas import FindingsBundle, ScorecardSummary, ScorecardDimension, WorkflowType
+
+from my_agents.renderers.full_report_renderer import render_full_report
 from my_agents.renderers.ic_memo_renderer import render_ic_memo
 from my_agents.renderers.one_pager_renderer import render_one_pager
-from my_agents.renderers.full_report_renderer import render_full_report
+from my_agents.schemas import (
+    FindingsBundle,
+    ScorecardDimension,
+    ScorecardSummary,
+    WorkflowType,
+)
+
 
 class RendererTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -22,14 +29,18 @@ class RendererTests(unittest.TestCase):
                 overall_score=85.0,
                 recommendation="Invest",
                 dimensions=[
-                    ScorecardDimension(dimension="Team", weight=50, score=4, rationale="Great"),
-                    ScorecardDimension(dimension="Market", weight=50, score=5, rationale="Huge"),
-                ]
+                    ScorecardDimension(
+                        dimension="Team", weight=50, score=4, rationale="Great"
+                    ),
+                    ScorecardDimension(
+                        dimension="Market", weight=50, score=5, rationale="Huge"
+                    ),
+                ],
             ),
             top_signals=["Signal 1", "Signal 2"],
             top_risks=["Risk 1"],
             open_questions=["Question 1"],
-            evidence_gaps=["Gap 1"]
+            evidence_gaps=["Gap 1"],
         )
 
     def test_ic_memo_renderer_includes_optional_sections(self) -> None:
@@ -60,6 +71,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn("Market is good", rendered)
         self.assertIn("## Portfolio Health", rendered)
         self.assertIn("Very healthy", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

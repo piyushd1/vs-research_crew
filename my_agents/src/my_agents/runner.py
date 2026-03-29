@@ -19,8 +19,7 @@ class AgentRunner(Protocol):
         llm: object,
         tools: list[object],
         verbose: bool = False,
-    ) -> BaseModel:
-        ...
+    ) -> BaseModel: ...
 
 
 class CrewAIAgentRunner:

@@ -38,7 +38,9 @@ def render_ic_memo(bundle: FindingsBundle) -> str:
             lines.extend(["", f"## {title}", bundle.sections[key]])
 
     lines.extend(["", "## Top Signals"])
-    lines.extend(f"- {item}" for item in bundle.top_signals or ["No top signals recorded."])
+    lines.extend(
+        f"- {item}" for item in bundle.top_signals or ["No top signals recorded."]
+    )
     lines.extend(["", "## Top Risks"])
     lines.extend(f"- {item}" for item in bundle.top_risks or ["No top risks recorded."])
     lines.extend(["", "## Open Questions"])
