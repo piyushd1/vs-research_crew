@@ -39,5 +39,11 @@ class ConfigurationTests(unittest.TestCase):
                 self.assertEqual(sum(self.config.resolve_score_weights(sector).values()), 100)
 
 
+
+    def test_invalid_source_profile_override_raises_value_error(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Unknown sources profile 'invalid_profile'"):
+            self.config.resolve_source_profile(sector="fintech", profile_override="invalid_profile")
+
+
 if __name__ == "__main__":
     unittest.main()
