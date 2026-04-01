@@ -10,6 +10,17 @@ from crewai.llms.base_llm import BaseLLM
 logger = logging.getLogger(__name__)
 
 
+def get_default_llm_model() -> str:
+    """Return the environment-configured default model name."""
+
+    return (
+        os.environ.get("MODEL")
+        or os.environ.get("MODEL_NAME")
+        or os.environ.get("OPENAI_MODEL_NAME")
+        or DEFAULT_LLM_MODEL
+    )
+
+
 def create_llm(
     llm_value: str | LLM | Any | None = None,
 ) -> LLM | BaseLLM | None:
@@ -79,12 +90,7 @@ def _llm_via_environment_or_fallback() -> LLM | None:
     Returns:
         A BaseLLM instance if successful, or None if something fails.
     """
-    model_name = (
-        os.environ.get("MODEL")
-        or os.environ.get("MODEL_NAME")
-        or os.environ.get("OPENAI_MODEL_NAME")
-        or DEFAULT_LLM_MODEL
-    )
+    model_name = get_default_llm_model()
 
     model: str = model_name
     temperature: float | None = None

@@ -65,6 +65,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from pydantic import BaseModel, Field
 
 from crewai.flow.flow_wrappers import FlowMethod
+from crewai.utilities.llm_utils import create_llm
 
 
 if TYPE_CHECKING:
@@ -182,7 +183,7 @@ class HumanFeedbackConfig:
 
     message: str
     emit: Sequence[str] | None = None
-    llm: str | BaseLLM | None = "gpt-4o-mini"
+    llm: str | BaseLLM | None = None
     default_outcome: str | None = None
     metadata: dict[str, Any] | None = None
     provider: HumanFeedbackProvider | None = None
@@ -231,7 +232,7 @@ class DistilledLessons(BaseModel):
 def human_feedback(
     message: str,
     emit: Sequence[str] | None = None,
-    llm: str | BaseLLM | None = "gpt-4o-mini",
+    llm: str | BaseLLM | None = None,
     default_outcome: str | None = None,
     metadata: dict[str, Any] | None = None,
     provider: HumanFeedbackProvider | None = None,
@@ -328,13 +329,6 @@ def human_feedback(
     """
     # Validation at decoration time
     if emit is not None:
-        if not llm:
-            raise ValueError(
-                "llm is required when emit is specified. "
-                "Provide an LLM model string (e.g., 'gpt-4o-mini') or a BaseLLM instance. "
-                "See the CrewAI Human-in-the-Loop (HITL) documentation for more information: "
-                "https://docs.crewai.com/en/learn/human-feedback-in-flows"
-            )
         if default_outcome is not None and default_outcome not in emit:
             raise ValueError(
                 f"default_outcome '{default_outcome}' must be one of the "
@@ -360,15 +354,13 @@ def human_feedback(
             Uses the SAME model specified in the decorator so pre-review,
             distillation, and outcome collapsing all share one model.
             """
-            if llm is None:
-                from crewai.llm import LLM
-
-                return LLM(model="gpt-4o-mini")
-            if isinstance(llm, str):
-                from crewai.llm import LLM
-
-                return LLM(model=llm)
-            return llm  # already a BaseLLM instance
+            resolved_llm = create_llm(llm)
+            if resolved_llm is None:
+                raise ValueError(
+                    "Unable to resolve a model for human feedback. "
+                    "Set MODEL, MODEL_NAME, or OPENAI_MODEL_NAME, or pass llm explicitly."
+                )
+            return resolved_llm
 
         def _pre_review_with_lessons(
             flow_instance: Flow[Any], method_output: Any

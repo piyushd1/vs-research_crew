@@ -14,6 +14,12 @@ ENV_VARS: dict[str, list[dict[str, Any]]] = {
             "key_name": "OPENAI_API_KEY",
         }
     ],
+    "openrouter": [
+        {
+            "prompt": "Enter your OpenRouter API key (press Enter to skip)",
+            "key_name": "OPENROUTER_API_KEY",
+        }
+    ],
     "anthropic": [
         {
             "prompt": "Enter your ANTHROPIC API key (press Enter to skip)",
@@ -117,6 +123,7 @@ ENV_VARS: dict[str, list[dict[str, Any]]] = {
 
 PROVIDERS: list[str] = [
     "openai",
+    "openrouter",
     "anthropic",
     "gemini",
     "nvidia_nim",
@@ -140,6 +147,10 @@ MODELS: dict[str, list[str]] = {
         "gpt-4o-mini",
         "o1-mini",
         "o1-preview",
+    ],
+    "openrouter": [
+        "openrouter/deepseek/deepseek-chat",
+        "openrouter/deepseek/deepseek-r1",
     ],
     "anthropic": [
         "claude-3-5-sonnet-20240620",

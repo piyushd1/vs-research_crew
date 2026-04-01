@@ -34,6 +34,7 @@ from crewai.memory.types import (
 from crewai.memory.utils import join_scope_paths
 from crewai.rag.embeddings.factory import build_embedder
 from crewai.rag.embeddings.providers.openai.types import OpenAIProviderSpec
+from crewai.utilities.llm_utils import get_default_llm_model
 
 
 if TYPE_CHECKING:
@@ -64,7 +65,7 @@ class Memory(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     llm: Annotated[BaseLLM | str, PlainValidator(_passthrough)] = Field(
-        default="gpt-4o-mini",
+        default_factory=get_default_llm_model,
         description="LLM for analysis (model name or BaseLLM instance).",
     )
     storage: Annotated[StorageBackend | str, PlainValidator(_passthrough)] = Field(
@@ -203,8 +204,9 @@ class Memory(BaseModel):
                 raise RuntimeError(
                     f"Memory requires an LLM for analysis but initialization failed: {e}\n\n"
                     "To fix this, do one of the following:\n"
-                    "  - Set OPENAI_API_KEY for the default model (gpt-4o-mini)\n"
-                    '  - Pass a different model: Memory(llm="anthropic/claude-3-haiku-20240307")\n'
+                    "  - Set MODEL, MODEL_NAME, or OPENAI_MODEL_NAME to your default model\n"
+                    "    and provide the matching provider credentials (for example OPENROUTER_API_KEY)\n"
+                    '  - Pass a different model: Memory(llm="openrouter/deepseek/deepseek-chat")\n'
                     '  - Pass any LLM instance: Memory(llm=LLM(model="your-model"))\n'
                     "  - To skip LLM analysis, pass all fields explicitly to remember()\n"
                     '    and use depth="shallow" for recall.\n\n'

@@ -20,7 +20,14 @@ crewai install
 ```
 ### Customizing
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+**Add your model and provider credentials into the `.env` file**
+
+OpenRouter example:
+
+```bash
+MODEL=openrouter/deepseek/deepseek-chat
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
 
 - Modify `src/{{folder_name}}/config/agents.yaml` to define your agents
 - Modify `src/{{folder_name}}/config/tasks.yaml` to define your tasks

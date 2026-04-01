@@ -30,7 +30,15 @@ def create_flow(name: str) -> None:
 
     # Create .env file
     with open(project_root / ".env", "w") as file:
-        file.write("OPENAI_API_KEY=YOUR_API_KEY")
+        file.write(
+            "# Default OpenRouter setup\n"
+            "MODEL=openrouter/deepseek/deepseek-chat\n"
+            "OPENROUTER_API_KEY=YOUR_OPENROUTER_API_KEY\n\n"
+            "# Optional OpenAI-compatible style instead of MODEL/OPENROUTER_API_KEY\n"
+            "# OPENAI_MODEL_NAME=openrouter/deepseek/deepseek-chat\n"
+            "# OPENAI_API_BASE=https://openrouter.ai/api/v1\n"
+            "# OPENAI_API_KEY=YOUR_OPENROUTER_API_KEY\n"
+        )
 
     package_dir = Path(__file__).parent
     templates_dir = package_dir / "templates" / "flow"

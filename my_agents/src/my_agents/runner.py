@@ -25,6 +25,23 @@ class AgentRunner(Protocol):
 
 class CrewAIAgentRunner:
     @staticmethod
+    def _build_json_prompt(prompt: str, response_model: type[BaseModel], retry: bool = False) -> str:
+        schema = json.dumps(response_model.model_json_schema(), indent=2)
+        retry_block = ""
+        if retry:
+            retry_block = (
+                "The previous response was not valid JSON. "
+                "Return ONLY a valid JSON object this time.\n"
+            )
+        return (
+            f"{prompt}\n\n"
+            "Return ONLY a valid JSON object that matches this schema exactly. "
+            "Do not add commentary, preamble, markdown fences, or explanations.\n"
+            f"{retry_block}"
+            f"{schema}\n"
+        )
+
+    @staticmethod
     def _extract_json_payload(text: str) -> str:
         candidate = text.strip()
         if candidate.startswith("```"):
@@ -62,19 +79,12 @@ class CrewAIAgentRunner:
             verbose=verbose,
         )
         try:
-            output = agent.kickoff(prompt, response_format=response_model)
-            if output.pydantic is not None:
-                return output.pydantic
-            return response_model.model_validate_json(output.raw)
-        except Exception:
-            schema = json.dumps(response_model.model_json_schema(), indent=2)
-            fallback_prompt = (
-                f"{prompt}\n\n"
-                "Return ONLY a valid JSON object that matches this schema exactly. "
-                "Do not add commentary, preamble, markdown fences, or explanations.\n"
-                f"{schema}\n"
+            output = agent.kickoff(self._build_json_prompt(prompt, response_model))
+            return response_model.model_validate_json(
+                self._extract_json_payload(output.raw)
             )
-            output = agent.kickoff(fallback_prompt)
+        except Exception:
+            output = agent.kickoff(self._build_json_prompt(prompt, response_model, retry=True))
             return response_model.model_validate_json(
                 self._extract_json_payload(output.raw)
             )
