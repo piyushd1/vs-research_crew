@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import os
+import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ from my_agents.schemas import (
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG_DIR = PACKAGE_ROOT / "config"
+_DELIMITERS_RE = re.compile(r"[/_ \-]+")
 
 
 SECTOR_PROFILE_ALIASES = {
@@ -162,14 +164,15 @@ SECTOR_PROFILE_ALIASES = {
 
 
 def normalize_profile_key(value: str | None) -> str | None:
-    if value is None:
+    if not value:
         return None
+
     normalized = value.strip().lower()
-    for needle, replacement in (("&", " and "), ("/", "_"), ("-", "_"), (" ", "_")):
-        normalized = normalized.replace(needle, replacement)
-    while "__" in normalized:
-        normalized = normalized.replace("__", "_")
-    normalized = normalized.strip("_")
+
+    if "&" in normalized:
+        normalized = normalized.replace("&", " and ")
+
+    normalized = _DELIMITERS_RE.sub("_", normalized).strip("_")
     return normalized or None
 
 

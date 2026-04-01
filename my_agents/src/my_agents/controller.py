@@ -336,9 +336,9 @@ class VCResearchController:
         elif request.company_name:
             brief = Brief(
                 company_name=request.company_name,
-                sector=request.sector if request.sector is not None else "general",
-                stage=request.stage if request.stage is not None else "unknown",
-                geography=request.geography if request.geography is not None else "India",
+                sector=request.sector or "general",
+                stage=request.stage or "unknown",
+                geography=request.geography or "India",
                 focus_instructions=request.focus_instructions,
                 exclude_instructions=request.exclude_instructions,
             )

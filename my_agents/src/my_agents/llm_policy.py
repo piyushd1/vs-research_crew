@@ -25,16 +25,6 @@ DEFAULT_OPEN_SOURCE_HINTS = (
     "olmo",
     "nemotron",
 )
-
-
-def _lowered_candidates(model: str) -> list[str]:
-    model_l = model.lower().strip()
-    pieces = [model_l]
-    if "/" in model_l:
-        pieces.extend(segment for segment in model_l.split("/") if segment)
-    return pieces
-
-
 def is_allowed_open_source_model(model: str, prefixes: Iterable[str]) -> bool:
     model_l = model.lower().strip()
     hints = tuple(prefix.lower() for prefix in prefixes) or DEFAULT_OPEN_SOURCE_HINTS
