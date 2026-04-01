@@ -5,201 +5,164 @@
 
 ## Overview
 
-This skill teaches you how to contribute to the `vc-research_crew` Python codebase, which focuses on agent-based research workflows. You'll learn the project's coding conventions, how to structure your code and tests, and how to follow the main development workflows for adding features, updating documentation, refactoring, and more. The repository uses conventional commits, a clear file structure, and emphasizes maintaining both code and documentation quality.
+This skill teaches the core development patterns, coding conventions, and collaborative workflows used in the `vc-research_crew` Python codebase. The repository is organized for modular agent/skill development, with a focus on maintainability, clear documentation, and robust testing. You'll learn how to contribute new features, refactor code, manage ECC bundles, and update multilingual documentation, all while following established conventions.
 
 ---
 
 ## Coding Conventions
 
-- **File Naming:**  
-  Use `snake_case` for all Python files and modules.
-  ```
-  # Good
-  controller.py
-  llm_policy.py
+**File Naming**
+- Use `snake_case` for all Python files.
+  - Example: `controller_flow.py`, `test_e2e_smoke.py`
 
-  # Bad
-  Controller.py
-  llmPolicy.py
-  ```
+**Import Style**
+- Use **relative imports** within packages.
+  - Example:
+    ```python
+    from .configuration import AgentConfig
+    from ..utilities.helpers import parse_brief
+    ```
 
-- **Import Style:**  
-  Use *relative imports* within modules.
-  ```python
-  # In my_agents/src/my_agents/controller.py
-  from .configuration import Config
-  ```
+**Export Style**
+- Use **named exports** (explicitly define what is exported).
+  - Example:
+    ```python
+    __all__ = ["AgentController", "AgentConfig"]
+    ```
 
-- **Export Style:**  
-  Use *named exports* (explicitly define what is exported).
-  ```python
-  # In my_agents/src/my_agents/tools/custom_tool.py
-  def custom_tool():
-      pass
-
-  __all__ = ["custom_tool"]
+**Commit Messages**
+- Follow [Conventional Commits](https://www.conventionalcommits.org/) with these prefixes:
+  - `feat`, `fix`, `docs`, `refactor`, `chore`
+- Example:
   ```
-
-- **Commit Messages:**  
-  Follow [Conventional Commits](https://www.conventionalcommits.org/):
-  ```
-  feat: add new agent evaluation workflow
-  fix: correct bug in evidence aggregation
-  docs: update skills documentation
-  refactor: simplify controller logic
-  chore: update dependencies
+  feat(controller): add async task dispatch support
+  fix(configuration): resolve env var parsing bug
   ```
 
 ---
 
 ## Workflows
 
-### Feature Development with Tests and Docs
-**Trigger:** When adding or improving a feature  
-**Command:** `/feature`
+### ECC Bundle Addition
 
-1. Edit or add implementation files (e.g., `controller.py`, `configuration.py`, etc.).
-2. Update or add corresponding test files (e.g., `tests/test_controller_flow.py`).
-3. Optionally update documentation (e.g., `README.md`).
+**Trigger:** When onboarding a new skill/agent or updating ECC bundle metadata  
+**Command:** `/add-ecc-bundle`
+
+1. Add or update command documentation in `.claude/commands/*.md` (e.g., `feature-development.md`).
+2. Add or update identity and tool metadata:
+    - `.claude/identity.json`
+    - `.claude/ecc-tools.json`
+3. Add or update the skill documentation:
+    - `.claude/skills/vc-research_crew/SKILL.md`
+    - `.agents/skills/vc-research_crew/SKILL.md`
+4. Configure the agent:
+    - `.agents/skills/vc-research_crew/agents/openai.yaml`
+5. Update instincts and agent configs:
+    - `.claude/homunculus/instincts/inherited/vc-research_crew-instincts.yaml`
+    - `.codex/agents/*.toml`
+    - `.codex/AGENTS.md`
+    - `.codex/config.toml`
 
 **Example:**
 ```bash
-# Add a new tool
-vim my_agents/src/my_agents/tools/custom_tool.py
-
-# Write its test
-vim my_agents/tests/test_quick_mode.py
-
-# Update docs if needed
-vim my_agents/README.md
+# Add a new ECC bundle for a skill
+/add-ecc-bundle
 ```
 
 ---
 
-### Add or Update Sample Briefs and E2E Tests
-**Trigger:** When adding new VC research scenarios and validating them end-to-end  
-**Command:** `/add-brief`
+### Feature or Refactor with Tests and Docs
 
-1. Add or update `sample_briefs/*.yaml` files.
-2. Add or update `tests/test_e2e_smoke.py` to cover new scenarios.
+**Trigger:** When adding a new feature, refactoring, or fixing code in `my_agents`  
+**Command:** `/feature-dev`
+
+1. Edit or create implementation files in `my_agents/src/my_agents/` (e.g., `controller.py`, `llm_policy.py`).
+2. Add or update tests in `my_agents/tests/` (e.g., `test_controller_flow.py`).
+3. Update supporting files as needed (`pyproject.toml`, `pytest.ini`, etc.).
+4. Optionally, update documentation (`my_agents/README.md`).
 
 **Example:**
-```bash
-# Add a new research scenario
-vim my_agents/sample_briefs/new_scenario.yaml
+```python
+# src/my_agents/controller.py
+def run_controller():
+    pass
 
-# Write or update the E2E smoke test
-vim my_agents/tests/test_e2e_smoke.py
+# tests/test_controller_flow.py
+def test_run_controller():
+    assert run_controller() is None
 ```
 
 ---
 
-### Documentation Core Concepts Update with Translations
-**Trigger:** When updating documentation for core concepts and translations  
-**Command:** `/update-docs`
+### Core Library Feature or Refactor with Tests
 
-1. Edit docs in `docs/en/concepts/*.mdx`.
-2. Edit or add translations in `docs/ar/concepts/*.mdx`, `docs/ko/concepts/*.mdx`, `docs/pt-BR/concepts/*.mdx`.
-3. Update `docs/docs.json` to reflect changes.
+**Trigger:** When adding or refactoring features in the core `crewai` library  
+**Command:** `/core-feature-dev`
+
+1. Edit implementation files in `lib/crewai/src/crewai/` (e.g., `llm.py`, `agent/core.py`).
+2. Add or update tests in `lib/crewai/tests/` (e.g., `test_llm.py`).
+3. Update or add test cassettes in `lib/crewai/tests/cassettes/` if needed.
+4. Optionally, update configuration files (`pyproject.toml`).
 
 **Example:**
-```bash
-# Update English docs
-vim docs/en/concepts/skills.mdx
+```python
+# src/crewai/llm.py
+class LLM:
+    def generate(self, prompt):
+        return "output"
 
-# Update Arabic translation
-vim docs/ar/concepts/skills.mdx
-
-# Update docs index
-vim docs/docs.json
+# tests/test_llm.py
+def test_generate():
+    llm = LLM()
+    assert llm.generate("test") == "output"
 ```
 
 ---
 
-### Refactor or Code Health Cleanup with Tests
-**Trigger:** When improving maintainability or removing obsolete code  
-**Command:** `/refactor`
+### Documentation Multilingual Update
 
-1. Edit or remove implementation files (e.g., remove functions, refactor classes).
-2. Update or remove corresponding test files.
+**Trigger:** When updating or adding documentation in multiple languages  
+**Command:** `/update-docs-all-langs`
 
-**Example:**
-```bash
-# Refactor main logic
-vim my_agents/src/my_agents/main.py
-
-# Remove obsolete test
-rm my_agents/tests/test_obsolete.py
-```
-
----
-
-### Dependency or Lockfile Update
-**Trigger:** When updating dependencies or fixing compatibility  
-**Command:** `/update-deps`
-
-1. Edit `pyproject.toml` or other dependency files.
-2. Update `uv.lock` as needed.
+1. Edit or add documentation in:
+    - `docs/en/concepts/*.mdx`
+    - `docs/ar/concepts/*.mdx`
+    - `docs/ko/concepts/*.mdx`
+    - `docs/pt-BR/concepts/*.mdx`
+2. Update `docs/docs.json` to reflect new or changed docs.
 
 **Example:**
-```bash
-# Add a new dependency
-vim my_agents/pyproject.toml
-
-# Update lockfile
-uv pip sync
-```
-
----
-
-### Merge Main or Upstream into Feature Branch
-**Trigger:** When syncing your branch with main or upstream  
-**Command:** `/merge-main`
-
-1. Merge `main` or `upstream` branch.
-2. Resolve conflicts and update files across docs, src, and tests.
-
-**Example:**
-```bash
-git checkout my-feature-branch
-git merge main
-# Resolve conflicts in docs, src, and tests as needed
+```markdown
+<!-- docs/en/concepts/agent-capabilities.mdx -->
+# Agent Capabilities
+Agents can perform tasks autonomously...
 ```
 
 ---
 
 ## Testing Patterns
 
-- **Test File Naming:**  
-  Test files are named as `*_test.py` and placed in the `tests/` directory.
-  ```
-  my_agents/tests/test_controller_flow.py
-  my_agents/tests/test_eval_benchmarks.py
-  ```
-
-- **Test Structure:**  
-  Each test file targets a specific module or workflow.  
-  Testing framework is not explicitly specified, but standard Python test patterns apply.
-
-- **Example Test:**
-  ```python
-  # my_agents/tests/test_controller_flow.py
-  def test_controller_initialization():
-      from my_agents.controller import Controller
-      ctrl = Controller()
-      assert ctrl.is_ready()
-  ```
+- Test files are named with the pattern `*_test.py` and placed alongside or in dedicated `tests/` directories.
+- Testing framework is **unknown**, but structure is compatible with `pytest`.
+- Tests are written as functions prefixed with `test_`.
+- Example:
+    ```python
+    # tests/test_e2e_smoke.py
+    def test_end_to_end_flow():
+        result = main()
+        assert result.success
+    ```
 
 ---
 
 ## Commands
 
-| Command      | Purpose                                                         |
-|--------------|-----------------------------------------------------------------|
-| /feature     | Start a new feature with tests and optional docs                |
-| /add-brief   | Add or update sample briefs and end-to-end tests                |
-| /update-docs | Update documentation and translations for core concepts         |
-| /refactor    | Refactor code and update or remove related tests                |
-| /update-deps | Update dependencies or lockfiles                                |
-| /merge-main  | Merge main or upstream into your feature branch                 |
+| Command                | Purpose                                                        |
+|------------------------|----------------------------------------------------------------|
+| /add-ecc-bundle        | Add or update an ECC bundle for a new skill/agent              |
+| /feature-dev           | Implement or refactor a feature in my_agents with tests/docs   |
+| /core-feature-dev      | Implement or refactor a feature in the core crewai library     |
+| /update-docs-all-langs | Update or add documentation in all supported languages         |
+
+---
 ```
