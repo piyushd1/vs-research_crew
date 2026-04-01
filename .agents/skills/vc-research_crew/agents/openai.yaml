@@ -1,0 +1,6 @@
+interface:
+  display_name: "Vc Research Crew"
+  short_description: "Repo-specific patterns and workflows for vc-research_crew"
+  default_prompt: "Use the vc-research_crew repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
