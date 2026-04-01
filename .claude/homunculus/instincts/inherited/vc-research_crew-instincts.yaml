@@ -1,0 +1,668 @@
+# Instincts generated from https://github.com/piyushd1/vc-research_crew
+# Generated: 2026-04-01T10:37:09.828Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: vc-research_crew-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix, feat, docs, chore, refactor
+
+## Evidence
+
+- 200 commits analyzed
+- Detected conventional commit pattern
+- Examples: docs: Add Agent Capabilities overview and improve Skills documentation (#5189), feat: emit token usage data in LLMCallCompletedEvent
+
+---
+id: vc-research_crew-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Commit Length
+
+## Action
+
+Write moderate-length commit messages (~57 characters)
+
+## Evidence
+
+- Average commit message length: 57 chars
+- Based on 200 commits
+
+---
+id: vc-research_crew-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Naming Files
+
+## Action
+
+Use snake_case naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: snake_case
+
+---
+id: vc-research_crew-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: vc-research_crew-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: vc-research_crew-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Test Naming
+
+## Action
+
+Name test files using the pattern: *_test.py
+
+## Evidence
+
+- File pattern: *_test.py
+- Consistent across test files
+
+---
+id: vc-research_crew-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Test Types
+
+## Action
+
+Write unit, integration, e2e tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, integration, e2e
+- Coverage config: yes
+
+---
+id: vc-research_crew-workflow-feature-development
+trigger: "when implementing a new feature"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Feature Development
+
+## Action
+
+Follow the feature-development workflow:
+1. Add feature implementation
+2. Add tests for feature
+3. Update documentation
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~8x per month
+- Files: **/*.test.*, **/api/**
+
+---
+id: vc-research_crew-workflow-refactoring
+trigger: "when refactoring code"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Refactoring
+
+## Action
+
+Follow the refactoring workflow:
+1. Ensure tests pass before refactor
+2. Refactor code structure
+3. Verify tests still pass
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/**/*
+
+---
+id: vc-research_crew-workflow-feature-development-with-tests-and-docs
+trigger: "when doing feature development with tests and docs"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Feature Development With Tests And Docs
+
+## Action
+
+Follow the feature-development-with-tests-and-docs workflow:
+1. Edit or add implementation files (e.g. controller.py, configuration.py, llm_policy.py, evidence.py, etc.)
+2. Update or add corresponding test files (e.g. tests/test_controller_flow.py, tests/test_configuration.py, tests/test_eval_benchmarks.py, etc.)
+3. Optionally update documentation (e.g. README.md)
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~6x per month
+- Files: my_agents/src/my_agents/controller.py, my_agents/src/my_agents/configuration.py, my_agents/src/my_agents/llm_policy.py
+
+---
+id: vc-research_crew-workflow-add-or-update-sample-briefs-and-e2e-tests
+trigger: "when doing add or update sample briefs and e2e tests"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Add Or Update Sample Briefs And E2e Tests
+
+## Action
+
+Follow the add-or-update-sample-briefs-and-e2e-tests workflow:
+1. Add or update sample_briefs/*.yaml files
+2. Add or update tests/test_e2e_smoke.py
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: my_agents/sample_briefs/*.yaml, my_agents/tests/test_e2e_smoke.py
+
+---
+id: vc-research_crew-workflow-documentation-core-concepts-update-with-translations
+trigger: "when doing documentation core concepts update with translations"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Documentation Core Concepts Update With Translations
+
+## Action
+
+Follow the documentation-core-concepts-update-with-translations workflow:
+1. Edit docs/en/concepts/*.mdx
+2. Edit or add docs/ar/concepts/*.mdx, docs/ko/concepts/*.mdx, docs/pt-BR/concepts/*.mdx
+3. Update docs/docs.json
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: docs/en/concepts/agent-capabilities.mdx, docs/en/concepts/skills.mdx, docs/en/concepts/tools.mdx
+
+---
+id: vc-research_crew-workflow-refactor-or-code-health-cleanup-with-tests
+trigger: "when doing refactor or code health cleanup with tests"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Refactor Or Code Health Cleanup With Tests
+
+## Action
+
+Follow the refactor-or-code-health-cleanup-with-tests workflow:
+1. Edit or remove implementation files (e.g. remove functions, refactor classes)
+2. Update or remove corresponding test files
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: my_agents/src/my_agents/main.py, my_agents/pyproject.toml, my_agents/src/my_agents/configuration.py
+
+---
+id: vc-research_crew-workflow-dependency-or-lockfile-update
+trigger: "when doing dependency or lockfile update"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Dependency Or Lockfile Update
+
+## Action
+
+Follow the dependency-or-lockfile-update workflow:
+1. Edit pyproject.toml or other dependency files
+2. Update uv.lock
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: pyproject.toml, my_agents/pyproject.toml, lib/crewai/pyproject.toml
+
+---
+id: vc-research_crew-workflow-merge-main-or-upstream-into-feature-branch
+trigger: "when doing merge main or upstream into feature branch"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Workflow Merge Main Or Upstream Into Feature Branch
+
+## Action
+
+Follow the merge-main-or-upstream-into-feature-branch workflow:
+1. Merge main or upstream branch
+2. Resolve conflicts and update files across docs, src, and tests
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: docs/ar/concepts/*.mdx, docs/en/concepts/*.mdx, docs/ko/concepts/*.mdx
+
+---
+id: vc-research_crew-instinct-file-naming
+trigger: "When creating or renaming files in the codebase"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct File Naming
+
+## Action
+
+Use snake_case for file names
+
+## Evidence
+
+- Pattern in namingConventions.files
+- All implementation files use snake_case
+
+---
+id: vc-research_crew-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Pattern in namingConventions.functions
+
+---
+id: vc-research_crew-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Pattern in namingConventions.classes
+
+---
+id: vc-research_crew-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Pattern in namingConventions.constants
+
+---
+id: vc-research_crew-instinct-import-style
+trigger: "When importing modules within the package"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Import Style
+
+## Action
+
+Use relative imports
+
+## Evidence
+
+- Pattern in importStyle: relative
+
+---
+id: vc-research_crew-instinct-export-style
+trigger: "When exporting functions or classes from a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle: named
+
+---
+id: vc-research_crew-instinct-test-file-pattern
+trigger: "When creating a new test file"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Test File Pattern
+
+## Action
+
+Name the file with *_test.py suffix
+
+## Evidence
+
+- Pattern in testing.filePattern
+- Files like tests/test_controller_flow.py
+
+---
+id: vc-research_crew-instinct-test-types
+trigger: "When writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Test Types
+
+## Action
+
+Include unit, integration, and end-to-end tests as appropriate
+
+## Evidence
+
+- testing.testTypes includes unit, integration, e2e
+- Presence of tests/test_e2e_smoke.py
+
+---
+id: vc-research_crew-instinct-test-coverage
+trigger: "When configuring tests"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Test Coverage
+
+## Action
+
+Ensure test coverage is configured and measured
+
+## Evidence
+
+- testing.coverageConfig: true
+
+---
+id: vc-research_crew-instinct-commit-format
+trigger: "When making a git commit"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Commit Format
+
+## Action
+
+Use conventional commit prefixes (fix, feat, docs, chore, refactor)
+
+## Evidence
+
+- Pattern in commits.prefixes
+- Examples: 'feat: ...', 'fix: ...'
+
+---
+id: vc-research_crew-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Commit Length
+
+## Action
+
+Keep commit message around 57 characters on average
+
+## Evidence
+
+- commits.averageLength: 57
+
+---
+id: vc-research_crew-instinct-feature-dev
+trigger: "When someone wants to add or improve a feature in the codebase"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Feature Dev
+
+## Action
+
+Edit or add implementation files, update or add corresponding test files, and optionally update documentation
+
+## Evidence
+
+- Workflow: feature-development-with-tests-and-docs
+- Files: my_agents/src/my_agents/controller.py, my_agents/tests/test_controller_flow.py, my_agents/README.md
+
+---
+id: vc-research_crew-instinct-add-briefs-e2e
+trigger: "When someone wants to add new VC research scenarios and ensure they work end-to-end"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Add Briefs E2e
+
+## Action
+
+Add or update sample_briefs/*.yaml files and add or update tests/test_e2e_smoke.py
+
+## Evidence
+
+- Workflow: add-or-update-sample-briefs-and-e2e-tests
+- Files: my_agents/sample_briefs/*.yaml, my_agents/tests/test_e2e_smoke.py
+
+---
+id: vc-research_crew-instinct-docs-core-concepts
+trigger: "When someone wants to update or add documentation for core concepts and ensure all translations are updated"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Docs Core Concepts
+
+## Action
+
+Edit docs/en/concepts/*.mdx, update or add translations in docs/ar, docs/ko, docs/pt-BR, and update docs/docs.json
+
+## Evidence
+
+- Workflow: documentation-core-concepts-update-with-translations
+- Files: docs/en/concepts/agent-capabilities.mdx, docs/ar/concepts/agent-capabilities.mdx, docs/docs.json
+
+---
+id: vc-research_crew-instinct-refactor-cleanup
+trigger: "When someone wants to improve code maintainability or remove obsolete code"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Refactor Cleanup
+
+## Action
+
+Edit or remove implementation files and update or remove corresponding test files
+
+## Evidence
+
+- Workflow: refactor-or-code-health-cleanup-with-tests
+- Files: my_agents/src/my_agents/main.py, my_agents/tests/test_controller_flow.py
+
+---
+id: vc-research_crew-instinct-dependency-update
+trigger: "When someone needs to update dependencies or fix compatibility issues"
+confidence: 0.8
+domain: workflow
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Dependency Update
+
+## Action
+
+Edit pyproject.toml or other dependency files and update uv.lock
+
+## Evidence
+
+- Workflow: dependency-or-lockfile-update
+- Files: pyproject.toml, uv.lock
+
+---
+id: vc-research_crew-instinct-merge-main
+trigger: "When someone wants to sync their branch with the latest changes from main or upstream"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: piyushd1/vc-research_crew
+---
+
+# Vc Research_crew Instinct Merge Main
+
+## Action
+
+Merge main or upstream branch and resolve conflicts, updating files across docs, src, and tests
+
+## Evidence
+
+- Workflow: merge-main-or-upstream-into-feature-branch
+- Files: docs/en/concepts/*.mdx, lib/crewai/src/crewai/**/*.py, my_agents/src/my_agents/**/*.py
+
