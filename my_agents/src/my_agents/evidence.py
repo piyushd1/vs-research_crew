@@ -25,9 +25,11 @@ class EvidenceRegistry:
     source_profile: SourcePriorityConfig
     findings_by_agent: dict[str, AgentFindingResult] = field(default_factory=dict)
     _claims: dict[str, list[FindingRecord]] = field(default_factory=lambda: defaultdict(list))
+    _findings_cache: list[FindingRecord] | None = field(default=None, init=False)
 
     def add_result(self, result: AgentFindingResult) -> None:
         self.findings_by_agent[result.agent_name] = result
+        self._findings_cache = None
         for finding in result.findings:
             claim_key = _normalize_key(finding)
             self._claims[claim_key].append(finding)
@@ -50,16 +52,19 @@ class EvidenceRegistry:
             record.conflict_level = conflict_level
 
     def findings(self) -> list[FindingRecord]:
-        return [
-            finding
-            for result in self.findings_by_agent.values()
-            for finding in result.findings
-        ]
+        if self._findings_cache is None:
+            self._findings_cache = [
+                finding
+                for result in self.findings_by_agent.values()
+                for finding in result.findings
+            ]
+        return self._findings_cache
 
     def unique_sources(self) -> list[dict[str, str]]:
         seen: set[tuple[str, str]] = set()
         unique = []
-        for finding in self.findings():
+        findings = self.findings()
+        for finding in findings:
             key = (finding.source_ref, finding.source_type)
             if key in seen:
                 continue
@@ -68,17 +73,20 @@ class EvidenceRegistry:
         return unique
 
     def summary(self, limit: int = 10) -> str:
-        lines: list[str] = []
-        for finding in self.findings()[:limit]:
-            lines.append(
-                f"- {finding.claim} | source={finding.source_ref} | confidence={finding.confidence:.2f}"
-            )
-        return "\n".join(lines) if lines else "No findings collected yet."
+        findings = self.findings()
+        if not findings:
+            return "No findings collected yet."
+        lines: list[str] = [
+            f"- {finding.claim} | source={finding.source_ref} | confidence={finding.confidence:.2f}"
+            for finding in findings[:limit]
+        ]
+        return "\n".join(lines)
 
     def deterministic_audit(self, required_citations: bool = True) -> AuditResult:
         issues: list[AuditIssue] = []
         gaps: list[str] = []
-        for finding in self.findings():
+        findings = self.findings()
+        for finding in findings:
             if required_citations and not finding.source_ref:
                 issues.append(
                     AuditIssue(
@@ -99,7 +107,7 @@ class EvidenceRegistry:
                     )
                 )
 
-        if not self.findings():
+        if not findings:
             gaps.append("No specialist findings were produced.")
 
         return AuditResult(
