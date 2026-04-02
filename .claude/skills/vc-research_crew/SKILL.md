@@ -5,201 +5,173 @@
 
 ## Overview
 
-This skill teaches you how to contribute to the `vc-research_crew` Python codebase, which focuses on agent-based research workflows. You'll learn the project's coding conventions, how to structure your code and tests, and how to follow the main development workflows for adding features, updating documentation, refactoring, and more. The repository uses conventional commits, a clear file structure, and emphasizes maintaining both code and documentation quality.
+This skill teaches you the core development patterns, coding conventions, and workflows used in the `vc-research_crew` Python codebase. The repository is designed for research automation and workflow management, with a strong emphasis on configuration-driven logic, modular design, and test-driven development. You'll learn how to add new features, update workflows, manage sector-specific logic, maintain code health, and write effective tests.
 
 ---
 
 ## Coding Conventions
 
-- **File Naming:**  
-  Use `snake_case` for all Python files and modules.
-  ```
-  # Good
-  controller.py
-  llm_policy.py
+**File Naming**
+- Use `snake_case` for all Python files and directories.
+  - Example: `controller.py`, `scorecard_weights.yaml`
 
-  # Bad
-  Controller.py
-  llmPolicy.py
-  ```
+**Import Style**
+- Use **relative imports** within modules.
+  - Example:
+    ```python
+    from .tools import data_loader
+    from .config import configuration
+    ```
 
-- **Import Style:**  
-  Use *relative imports* within modules.
-  ```python
-  # In my_agents/src/my_agents/controller.py
-  from .configuration import Config
-  ```
+**Export Style**
+- Use **named exports** (explicit function/class definitions).
+  - Example:
+    ```python
+    def run_workflow(...):
+        ...
+    ```
 
-- **Export Style:**  
-  Use *named exports* (explicitly define what is exported).
-  ```python
-  # In my_agents/src/my_agents/tools/custom_tool.py
-  def custom_tool():
-      pass
-
-  __all__ = ["custom_tool"]
-  ```
-
-- **Commit Messages:**  
-  Follow [Conventional Commits](https://www.conventionalcommits.org/):
-  ```
-  feat: add new agent evaluation workflow
-  fix: correct bug in evidence aggregation
-  docs: update skills documentation
-  refactor: simplify controller logic
-  chore: update dependencies
-  ```
+**Commit Messages**
+- Follow **Conventional Commits**: `fix:`, `feat:`, `docs:`, `refactor:`, `chore:`
+  - Example: `feat: add sector-specific scorecard logic`
 
 ---
 
 ## Workflows
 
-### Feature Development with Tests and Docs
-**Trigger:** When adding or improving a feature  
-**Command:** `/feature`
+### Feature Development, Implementation, Tests & Docs
+**Trigger:** When adding a new feature or overhauling an existing system  
+**Command:** `/new-feature`
 
-1. Edit or add implementation files (e.g., `controller.py`, `configuration.py`, etc.).
-2. Update or add corresponding test files (e.g., `tests/test_controller_flow.py`).
-3. Optionally update documentation (e.g., `README.md`).
+1. Edit or add implementation files in `src/my_agents/` (e.g., `controller.py`, `runner.py`, `tools/`)
+2. Edit or add configuration files in `src/my_agents/config/` (e.g., `agents.yaml`, `llm.yaml`, `workflows/`)
+3. Edit or add renderer/output files in `src/my_agents/renderers/`
+4. Edit or add test files in `my_agents/tests/`
+5. Edit or add documentation in `my_agents/README.md` or `my_agents/docs/`
 
 **Example:**
-```bash
-# Add a new tool
-vim my_agents/src/my_agents/tools/custom_tool.py
-
-# Write its test
-vim my_agents/tests/test_quick_mode.py
-
-# Update docs if needed
-vim my_agents/README.md
+```python
+# src/my_agents/controller.py
+def new_feature_controller(...):
+    ...
+```
+```yaml
+# src/my_agents/config/agents.yaml
+new_agent:
+  type: research
+  ...
 ```
 
 ---
 
-### Add or Update Sample Briefs and E2E Tests
-**Trigger:** When adding new VC research scenarios and validating them end-to-end  
-**Command:** `/add-brief`
+### Add or Update Config-Driven Workflow
+**Trigger:** When introducing or modifying a research workflow or process  
+**Command:** `/new-workflow`
 
-1. Add or update `sample_briefs/*.yaml` files.
-2. Add or update `tests/test_e2e_smoke.py` to cover new scenarios.
+1. Edit or add workflow YAML files in `src/my_agents/config/workflows/`
+2. Edit or add related config files (e.g., `agents.yaml`, `output_profiles/`)
+3. Update `controller.py`, `runner.py`, or `schemas.py` to support new workflow logic
+4. Edit or add renderer files if output format changes
+5. Update or add tests to cover the new/changed workflow
 
 **Example:**
-```bash
-# Add a new research scenario
-vim my_agents/sample_briefs/new_scenario.yaml
-
-# Write or update the E2E smoke test
-vim my_agents/tests/test_e2e_smoke.py
+```yaml
+# src/my_agents/config/workflows/due_diligence.yaml
+steps:
+  - gather_data
+  - analyze
+  - summarize
+```
+```python
+# src/my_agents/controller.py
+def run_due_diligence(...):
+    ...
 ```
 
 ---
 
-### Documentation Core Concepts Update with Translations
-**Trigger:** When updating documentation for core concepts and translations  
-**Command:** `/update-docs`
+### Add or Update Sector Scorecard or Source
+**Trigger:** When supporting a new sector or updating scoring/source logic  
+**Command:** `/add-sector`
 
-1. Edit docs in `docs/en/concepts/*.mdx`.
-2. Edit or add translations in `docs/ar/concepts/*.mdx`, `docs/ko/concepts/*.mdx`, `docs/pt-BR/concepts/*.mdx`.
-3. Update `docs/docs.json` to reflect changes.
+1. Add or edit YAML files in `src/my_agents/config/scorecard/` or `src/my_agents/config/sources/`
+2. Update `configuration.py` or `controller.py` to recognize new sectors
+3. Update or add tests to validate sector coverage
 
 **Example:**
-```bash
-# Update English docs
-vim docs/en/concepts/skills.mdx
-
-# Update Arabic translation
-vim docs/ar/concepts/skills.mdx
-
-# Update docs index
-vim docs/docs.json
+```yaml
+# src/my_agents/config/scorecard/fintech.yaml
+weights:
+  growth: 0.4
+  risk: 0.3
+  innovation: 0.3
+```
+```python
+# src/my_agents/configuration.py
+SECTORS = ["fintech", "healthtech", ...]
 ```
 
 ---
 
-### Refactor or Code Health Cleanup with Tests
-**Trigger:** When improving maintainability or removing obsolete code  
-**Command:** `/refactor`
+### Test-Driven Development: Add Tests for New or Changed Code
+**Trigger:** When adding a new feature, fixing a bug, or changing configuration  
+**Command:** `/add-test`
 
-1. Edit or remove implementation files (e.g., remove functions, refactor classes).
-2. Update or remove corresponding test files.
+1. Edit or add test files in `my_agents/tests/` corresponding to the changed feature or module
+2. Update `pytest.ini` or `conftest.py` if new test setup is required
+3. Run tests to verify changes
 
 **Example:**
-```bash
-# Refactor main logic
-vim my_agents/src/my_agents/main.py
-
-# Remove obsolete test
-rm my_agents/tests/test_obsolete.py
+```python
+# my_agents/tests/test_controller.py
+def test_new_feature_controller():
+    assert new_feature_controller(...) == expected_result
 ```
 
 ---
 
-### Dependency or Lockfile Update
-**Trigger:** When updating dependencies or fixing compatibility  
-**Command:** `/update-deps`
+### Code Health or Refactor: Cleanup Unused Code and Fix Defaults
+**Trigger:** When cleaning up technical debt or removing obsolete code  
+**Command:** `/cleanup-code`
 
-1. Edit `pyproject.toml` or other dependency files.
-2. Update `uv.lock` as needed.
-
-**Example:**
-```bash
-# Add a new dependency
-vim my_agents/pyproject.toml
-
-# Update lockfile
-uv pip sync
-```
-
----
-
-### Merge Main or Upstream into Feature Branch
-**Trigger:** When syncing your branch with main or upstream  
-**Command:** `/merge-main`
-
-1. Merge `main` or `upstream` branch.
-2. Resolve conflicts and update files across docs, src, and tests.
+1. Remove unused functions or files in `src/my_agents/`
+2. Fix model defaults or configuration in `configuration.py`, `controller.py`, `schemas.py`, etc.
+3. Update `pyproject.toml` if entry points or dependencies change
+4. Update or add tests to confirm cleanup did not break functionality
 
 **Example:**
-```bash
-git checkout my-feature-branch
-git merge main
-# Resolve conflicts in docs, src, and tests as needed
+```python
+# src/my_agents/controller.py
+# Remove unused function
+# def old_unused_function(...): ...
 ```
 
 ---
 
 ## Testing Patterns
 
-- **Test File Naming:**  
-  Test files are named as `*_test.py` and placed in the `tests/` directory.
-  ```
-  my_agents/tests/test_controller_flow.py
-  my_agents/tests/test_eval_benchmarks.py
-  ```
+- **Test files** are named with the pattern `*_test.py` and located in `my_agents/tests/`.
+- The testing framework is not explicitly specified, but `pytest` conventions are followed.
+- Use assert statements to validate logic.
+- Add or update `pytest.ini` or `conftest.py` for test configuration if needed.
 
-- **Test Structure:**  
-  Each test file targets a specific module or workflow.  
-  Testing framework is not explicitly specified, but standard Python test patterns apply.
-
-- **Example Test:**
-  ```python
-  # my_agents/tests/test_controller_flow.py
-  def test_controller_initialization():
-      from my_agents.controller import Controller
-      ctrl = Controller()
-      assert ctrl.is_ready()
-  ```
+**Example:**
+```python
+# my_agents/tests/test_runner.py
+def test_run_workflow():
+    result = run_workflow(...)
+    assert result["status"] == "success"
+```
 
 ---
 
 ## Commands
 
-| Command      | Purpose                                                         |
-|--------------|-----------------------------------------------------------------|
-| /feature     | Start a new feature with tests and optional docs                |
-| /add-brief   | Add or update sample briefs and end-to-end tests                |
-| /update-docs | Update documentation and translations for core concepts         |
-| /refactor    | Refactor code and update or remove related tests                |
-| /update-deps | Update dependencies or lockfiles                                |
-| /merge-main  | Merge main or upstream into your feature branch                 |
+| Command        | Purpose                                                        |
+|----------------|----------------------------------------------------------------|
+| /new-feature   | Start a new feature, implementation, tests, and docs workflow  |
+| /new-workflow  | Add or update a config-driven research workflow                |
+| /add-sector    | Add or update sector scorecard or source logic                 |
+| /add-test      | Add or update tests for new or changed code                    |
+| /cleanup-code  | Remove unused code and fix model/config defaults               |
 ```
