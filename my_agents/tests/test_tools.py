@@ -31,7 +31,11 @@ class ToolSelectionTests(unittest.TestCase):
 
     def test_non_financial_agent_uses_generic_serper_tool(self) -> None:
         dummy_module = types.SimpleNamespace(SerperDevTool=DummySerperDevTool)
-        with patch.dict(os.environ, {"SERPER_API_KEY": "test-key"}, clear=False):
+        # Serper is only used as fallback when Tavily is NOT available
+        env = {"SERPER_API_KEY": "test-key"}
+        env_remove = {k: v for k, v in os.environ.items() if k != "TAVILY_API_KEY"}
+        env_remove.update(env)
+        with patch.dict(os.environ, env_remove, clear=True):
             with patch.dict("sys.modules", {"crewai_tools": dummy_module}):
                 tools = build_tools(self.brief, self.source_profile, "market_mapper")
         tool_names = [getattr(tool, "name", type(tool).__name__) for tool in tools]

@@ -14,7 +14,13 @@ from pydantic import BaseModel, Field
 
 
 class TavilySearchInput(BaseModel):
-    query: str = Field(..., description="Search query string.")
+    query: str = Field(
+        ...,
+        description=(
+            "Search query string. ALWAYS include the company name and 'India' in your query "
+            "to get India-relevant results. Example: '\"Razorpay\" India revenue funding'."
+        ),
+    )
     search_depth: str = Field(
         "advanced",
         description="Search depth: 'basic' or 'advanced'.",
@@ -26,7 +32,13 @@ class TavilyExtractInput(BaseModel):
 
 
 class TavilyResearchInput(BaseModel):
-    topic: str = Field(..., description="Research topic or question.")
+    topic: str = Field(
+        ...,
+        description=(
+            "Research topic or question. ALWAYS include the company name and 'India' context. "
+            "Example: '\"Zerodha\" India fintech market position revenue growth'."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +76,9 @@ class TavilySearchTool(BaseTool):
 
     name: str = "tavily_search"
     description: str = (
-        "Performs a deep web search using Tavily and returns up to 8 results "
-        "with title, URL, content snippet, and relevance score."
+        "Deep web search for Indian startup and company research. Returns up to 8 results "
+        "with title, URL, content snippet, and relevance score. Always include 'India' in "
+        "your query to get India-relevant results."
     )
     args_schema: type[BaseModel] = TavilySearchInput
 
@@ -74,9 +87,12 @@ class TavilySearchTool(BaseTool):
         if not api_key:
             return "TAVILY_API_KEY is not configured."
 
+        # Auto-append India context if not already present
+        india_query = query if "india" in query.lower() else f"{query} India"
+
         payload = {
             "api_key": api_key,
-            "query": query,
+            "query": india_query,
             "search_depth": search_depth,
             "max_results": 8,
         }
@@ -148,8 +164,9 @@ class TavilyResearchTool(BaseTool):
 
     name: str = "tavily_research"
     description: str = (
-        "Performs comprehensive research on a topic using Tavily advanced search "
-        "with up to 10 results and an AI-generated answer summary."
+        "Comprehensive research on an Indian company or market topic. Uses advanced search "
+        "with up to 10 results and an AI-generated summary. Always include 'India' in "
+        "your topic to get India-relevant results."
     )
     args_schema: type[BaseModel] = TavilyResearchInput
 
@@ -158,9 +175,12 @@ class TavilyResearchTool(BaseTool):
         if not api_key:
             return "TAVILY_API_KEY is not configured."
 
+        # Auto-append India context if not already present
+        india_topic = topic if "india" in topic.lower() else f"{topic} India"
+
         payload = {
             "api_key": api_key,
-            "query": topic,
+            "query": india_topic,
             "search_depth": "advanced",
             "max_results": 10,
             "include_answer": True,
