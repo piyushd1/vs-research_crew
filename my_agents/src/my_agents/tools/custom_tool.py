@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
+import json
+import os
 from pathlib import Path
+from urllib import error, parse, request
 
 from crewai.tools import BaseTool
 import pdfplumber
@@ -15,6 +18,11 @@ SECTOR_SOURCE_HINTS = {
         "Ministry of Agriculture, NABARD, eNAM, and Agri Stack policy references",
         "State agriculture departments, mandi data, and FPO ecosystem references",
         "On-ground distribution, field deployment, and procurement evidence",
+    ],
+    "b2b_services": [
+        "Procurement, supply-chain, warehouse, distributor, and buyer-seller workflow evidence",
+        "GST, trade, logistics, and MSME ecosystem references where relevant",
+        "Customer case studies, operational footprint, and partner ecosystem evidence",
     ],
     "climate": [
         "MNRE, state power regulators, and public energy transition policy references",
@@ -241,4 +249,104 @@ class IndiaSourceRegistryTool(BaseTool):
         if agent_name == "founder_signal_analyst":
             lines.extend(["Founder signal fallback hierarchy:"])
             lines.extend(f"- {item}" for item in founder_signal)
+        return "\n".join(lines)
+
+
+class FinancialSignalSearchInput(BaseModel):
+    company_name: str = Field(..., description="Company being analyzed.")
+    website: str | None = Field(default=None, description="Company website if known.")
+    sector: str | None = Field(default=None, description="Sector or category.")
+
+
+class FinancialSignalSearchTool(BaseTool):
+    name: str = "financial_signal_search"
+    description: str = (
+        "Fetches a small, company-grounded packet of public financial signals "
+        "such as funding history, reported revenue, pricing, and business-model clues."
+    )
+    args_schema: type[BaseModel] = FinancialSignalSearchInput
+
+    @staticmethod
+    def _domain_from_website(website: str | None) -> str | None:
+        if not website or website == "Unknown":
+            return None
+        parsed = parse.urlparse(website if "://" in website else f"https://{website}")
+        domain = parsed.netloc.lower().lstrip("www.")
+        return domain or None
+
+    def _build_queries(
+        self,
+        company_name: str,
+        website: str | None,
+        sector: str | None,
+    ) -> list[str]:
+        queries = [
+            f'"{company_name}" India revenue funding business model',
+            f'"{company_name}" India pricing unit economics',
+            f'"{company_name}" India financials funding round reported revenue',
+        ]
+        domain = self._domain_from_website(website)
+        if domain:
+            queries.insert(0, f'site:{domain} "{company_name}" pricing business model')
+        if sector:
+            queries.append(f'"{company_name}" {sector} India funding reported revenue')
+        deduped: list[str] = []
+        for query in queries:
+            if query not in deduped:
+                deduped.append(query)
+        return deduped[:3]
+
+    def _search(self, query: str) -> dict:
+        api_key = os.environ.get("SERPER_API_KEY")
+        if not api_key:
+            return {"organic": []}
+        req = request.Request(
+            "https://google.serper.dev/search",
+            data=json.dumps({"q": query, "num": 5}).encode("utf-8"),
+            headers={
+                "X-API-KEY": api_key,
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with request.urlopen(req, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    def _run(self, company_name: str, website: str | None = None, sector: str | None = None) -> str:
+        if not os.environ.get("SERPER_API_KEY"):
+            return "SERPER_API_KEY is not configured."
+
+        lines = [
+            f"Company: {company_name}",
+            f"Website: {website or 'Unknown'}",
+            f"Sector: {sector or 'general'}",
+            "Focused public financial signals:",
+        ]
+
+        queries = self._build_queries(company_name, website, sector)
+        found_any = False
+        for query in queries:
+            try:
+                payload = self._search(query)
+            except error.URLError as exc:
+                lines.append(f"- Query failed: {query} ({exc})")
+                continue
+            organic = payload.get("organic", [])[:3]
+            if not organic:
+                lines.append(f"- No strong results for query: {query}")
+                continue
+            found_any = True
+            lines.append(f"- Query: {query}")
+            for item in organic:
+                title = item.get("title", "Untitled result")
+                link = item.get("link", "")
+                snippet = item.get("snippet", "")
+                lines.append(f"  - {title} | {link}")
+                if snippet:
+                    lines.append(f"    {snippet}")
+
+        if not found_any:
+            lines.append(
+                "- No company-grounded public finance results found. Use open questions rather than inferring burn or runway."
+            )
         return "\n".join(lines)

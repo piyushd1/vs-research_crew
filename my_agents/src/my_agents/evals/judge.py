@@ -3,15 +3,72 @@ from __future__ import annotations
 from my_agents.configuration import AppConfig
 from my_agents.llm_policy import build_eval_llm
 from my_agents.runner import CrewAIAgentRunner
-from my_agents.schemas import AgentSpec, Brief, FindingsBundle, VCRubric
+from my_agents.schemas import (
+    AgentSpec,
+    Brief,
+    FindingsBundle,
+    ReportStandardsAssessment,
+    VCRubric,
+)
+
+
+def build_eval_prompt(
+    brief: Brief,
+    bundle: FindingsBundle,
+    standards_assessment: ReportStandardsAssessment,
+) -> str:
+    return (
+        "EVALUATION TASK:\n"
+        "You must evaluate the following generated research bundle against the original request constraints.\n\n"
+        f"--- ORIGINAL REQUEST CONSTRAINTS (BRIEF) ---\n"
+        f"Company: {brief.company_name}\n"
+        f"Questions to Answer: {brief.questions}\n"
+        f"Focus Area: {brief.focus_instructions or 'N/A'}\n"
+        f"Negative Constraints (Exclude): {brief.exclude_instructions or 'N/A'}\n\n"
+        f"--- GENERATED OUTPUT BUNDLE ---\n"
+        f"{bundle.model_dump_json(indent=2)}\n\n"
+        f"--- DETERMINISTIC REPORT STANDARDS CHECK ---\n"
+        f"{standards_assessment.model_dump_json(indent=2)}\n\n"
+        "--- EVALUATION INSTRUCTIONS ---\n"
+        "1. Extract the actual text from the sections and the scorecard parameters.\n"
+        "2. Score 'relevance_score' (1-10) based on how well it answered the Questions and adhered to the Focus Area.\n"
+        "3. Score 'tone_score' (1-10) based on objectivity and conciseness (minus points for hype or vagueness).\n"
+        "4. Score 'citation_quality_score' (1-10) based on source specificity, traceability, and use of primary evidence.\n"
+        "5. Score 'structure_score' (1-10) based on section completeness and whether the output fits an IC-style deliverable.\n"
+        "6. Score 'length_fit_score' (1-10) using the deterministic standards check target range.\n"
+        "7. Score 'evidence_strength_score' (1-10) based on whether material claims are directly grounded in cited evidence.\n"
+        "8. Return entries in 'hallucinations' ONLY for unsupported or contradicted material claims. If none, return an empty list.\n"
+        "9. List any topics mentioned in 'Negative Constraints (Exclude)' under 'negative_constraint_violations'. If none, return an empty list.\n"
+        "10. Provide 3-5 'improvement_actions' that would most improve the report for a VC partner or IC reader.\n"
+        "11. The system will recalculate 'final_eval_score' from the component scores, so you may leave it at 0.\n"
+        "12. Write 'summary_feedback' as 1-2 blunt but constructive sentences.\n"
+    )
+
+
+def finalize_rubric(rubric: VCRubric) -> VCRubric:
+    hallucinations = [item for item in rubric.hallucinations if item.is_hallucination]
+    base_score = (
+        rubric.relevance_score * 0.28
+        + rubric.tone_score * 0.10
+        + rubric.citation_quality_score * 0.18
+        + rubric.structure_score * 0.14
+        + rubric.length_fit_score * 0.10
+        + rubric.evidence_strength_score * 0.20
+    ) * 10.0
+    penalty = (8 * len(hallucinations)) + (5 * len(rubric.negative_constraint_violations))
+    rubric.hallucinations = hallucinations
+    rubric.final_eval_score = max(0, min(100, round(base_score - penalty)))
+    return rubric
 
 
 def evaluate_run(
     brief: Brief,
     bundle: FindingsBundle,
     config: AppConfig,
+    standards_assessment: ReportStandardsAssessment,
     runner: CrewAIAgentRunner | None = None,
     verbose: bool = False,
+    prompt_override: str | None = None,
 ) -> VCRubric:
     """Evaluates a completed VC Research run against a strict rubric."""
     llm = build_eval_llm(config.llm)
@@ -28,29 +85,9 @@ def evaluate_run(
         active=True,
     )
 
-    prompt = (
-        "EVALUATION TASK:\n"
-        "You must evaluate the following generated research bundle against the original request constraints.\n\n"
-        f"--- ORIGINAL REQUEST CONSTRAINTS (BRIEF) ---\n"
-        f"Company: {brief.company_name}\n"
-        f"Questions to Answer: {brief.questions}\n"
-        f"Focus Area: {brief.focus_instructions or 'N/A'}\n"
-        f"Negative Constraints (Exclude): {brief.exclude_instructions or 'N/A'}\n\n"
-        f"--- GENERATED OUTPUT BUNDLE ---\n"
-        f"{bundle.model_dump_json(indent=2)}\n\n"
-        "--- EVALUATION INSTRUCTIONS ---\n"
-        "1. Extract the actual text from the sections and the scorecard parameters.\n"
-        "2. Score 'relevance_score' (1-10) based on how well it answered the Questions and adhered to the Focus Area.\n"
-        "3. Score 'tone_score' (1-10) based on objectivity and conciseness (minus points for marketing hype).\n"
-        "4. Flag strict 'hallucinations': if any claim in the top_signals or scorecard relies on metrics, revenues, or "
-        "specific features not typical of early-stage analysis without evidence, mark it. If none, return an empty list.\n"
-        "5. Negative Constraints: Identify if ANY topic mentioned in 'Negative Constraints (Exclude)' was discussed. "
-        "List them if they occurred. If none, return an empty list.\n"
-        "6. Final Eval Score: 0 to 100 representing overall quality.\n"
-        "7. Summary Feedback: 1-2 sentences justifying the final score.\n"
-    )
+    prompt = prompt_override or build_eval_prompt(brief, bundle, standards_assessment)
 
-    return runner.run_agent(
+    result = runner.run_agent(
         agent_name="eval_judge",
         spec=spec,
         prompt=prompt,
@@ -59,3 +96,6 @@ def evaluate_run(
         tools=[],  # Eval judge just reads the bundle, no tools.
         verbose=verbose,
     ) # type: ignore
+    if not isinstance(result, VCRubric):
+        result = VCRubric.model_validate(result.model_dump())
+    return finalize_rubric(result)

@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from my_agents.controller import VCResearchController
+from my_agents.runner import AgentFinalAnswerError
 from my_agents.schemas import (
     AgentFindingResult,
     ApproveMode,
@@ -22,8 +23,13 @@ from my_agents.schemas import (
 
 
 class FakeRunner:
-    def __init__(self, fail_on_agent: str | None = None):
+    def __init__(
+        self,
+        fail_on_agent: str | None = None,
+        final_answer_fail_on_agent: str | None = None,
+    ):
         self.fail_on_agent = fail_on_agent
+        self.final_answer_fail_on_agent = final_answer_fail_on_agent
 
     def run_agent(
         self,
@@ -37,6 +43,8 @@ class FakeRunner:
     ):
         if self.fail_on_agent == agent_name:
             raise RuntimeError(f"Simulated failure in {agent_name}")
+        if self.final_answer_fail_on_agent == agent_name:
+            raise AgentFinalAnswerError(f"Agent '{agent_name}' did not reach a final answer.")
 
         if response_model is AgentFindingResult:
             return AgentFindingResult(
@@ -113,6 +121,8 @@ class ControllerFlowTests(unittest.TestCase):
             artifacts = controller.run(request)
 
         self.assertTrue(artifacts.report_path.exists())
+        self.assertTrue(artifacts.report_html_path is not None and artifacts.report_html_path.exists())
+        self.assertTrue(artifacts.standards_path is not None and artifacts.standards_path.exists())
         state = json.loads(artifacts.run_state_path.read_text(encoding="utf-8"))
         self.assertEqual(state["workflow"], workflow.value)
 
@@ -205,6 +215,28 @@ class ControllerFlowTests(unittest.TestCase):
         self.assertTrue(artifacts.report_path.exists())
         state2 = RunState.model_validate_json(artifacts.run_state_path.read_text("utf-8"))
         self.assertEqual(len(state2.pending_agents), 0)
+
+    def test_final_answer_failure_records_placeholder_and_continues(self) -> None:
+        controller = VCResearchController(
+            runner=FakeRunner(final_answer_fail_on_agent="financial_researcher"),
+            project_root=self.project_root,
+        )
+        request = RunRequest(
+            workflow=WorkflowType.DUE_DILIGENCE,
+            brief_path=self.brief_path,
+            output_profile=OutputProfile.IC_MEMO,
+            approve_mode=ApproveMode.AUTO,
+        )
+
+        with patch("my_agents.controller.build_llm", return_value=object()):
+            artifacts = controller.run(request)
+
+        self.assertTrue(artifacts.report_path.exists())
+        failed_finding = AgentFindingResult.model_validate_json(
+            (artifacts.run_dir / "findings" / "financial_researcher.json").read_text("utf-8")
+        )
+        self.assertIn("unresolved", failed_finding.summary.lower())
+        self.assertTrue(failed_finding.open_questions)
 
 
 if __name__ == "__main__":

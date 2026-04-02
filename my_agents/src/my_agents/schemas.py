@@ -54,6 +54,18 @@ class ApprovalAction(StrEnum):
     ABORT = "abort"
 
 
+class LengthStatus(StrEnum):
+    TOO_SHORT = "too_short"
+    TARGET = "target"
+    TOO_LONG = "too_long"
+
+
+class ValidationStatus(StrEnum):
+    PASS = "pass"
+    WATCH = "watch"
+    FAIL = "fail"
+
+
 ALLOWED_SECTION_KEYS = {
     "executive_summary",
     "company_snapshot",
@@ -184,7 +196,7 @@ class FindingRecord(BaseModel):
     evidence_summary: str
     source_ref: str
     source_type: str
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     risk_level: RiskLevel = RiskLevel.MEDIUM
     open_questions: list[str] = Field(default_factory=list)
     claim_key: str | None = None
@@ -215,6 +227,7 @@ class AgentFindingResult(BaseModel):
     downstream_flags: list[DownstreamFlag] = Field(default_factory=list)
     sources_checked: list[SourceAccessRecord] = Field(default_factory=list)
     suggested_section_keys: list[str] = Field(default_factory=list)
+    partial: bool = False
 
 
 class AuditIssue(BaseModel):
@@ -236,12 +249,26 @@ class ScorecardDimension(BaseModel):
     weight: int
     score: int = Field(ge=1, le=5)
     rationale: str
+    evidence_count: int = 0
+    average_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    coverage_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+    conflict_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+    method: str = "weighted_evidence_model"
 
 
 class ScorecardSummary(BaseModel):
     overall_score: float = Field(ge=0.0, le=100.0)
     recommendation: str
     dimensions: list[ScorecardDimension] = Field(default_factory=list)
+    weighted_dimension_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    confidence_index: float = Field(default=0.0, ge=0.0, le=100.0)
+    coverage_index: float = Field(default=0.0, ge=0.0, le=100.0)
+    conflict_index: float = Field(default=0.0, ge=0.0, le=100.0)
+    gap_penalty: float = Field(default=0.0, ge=0.0, le=100.0)
+    methodology: str = (
+        "Workflow-aware weighted score using specialist ratings adjusted for evidence confidence, "
+        "coverage, conflicts, and diligence gaps."
+    )
 
 
 class FindingsBundle(BaseModel):
@@ -258,6 +285,24 @@ class FindingsBundle(BaseModel):
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class ReportStandardsAssessment(BaseModel):
+    workflow: WorkflowType
+    output_profile: OutputProfile
+    industry_profile: str
+    word_count: int = Field(ge=0)
+    target_word_range: tuple[int, int]
+    length_status: LengthStatus = LengthStatus.TARGET
+    citation_count: int = Field(ge=0)
+    minimum_citations: int = Field(ge=0)
+    required_sections: list[str] = Field(default_factory=list)
+    present_sections: list[str] = Field(default_factory=list)
+    missing_sections: list[str] = Field(default_factory=list)
+    section_coverage: float = Field(ge=0.0, le=1.0)
+    citation_density: float = Field(ge=0.0)
+    overall_status: ValidationStatus = ValidationStatus.WATCH
+    notes: list[str] = Field(default_factory=list)
+
+
 class WorkflowTaskDefinition(BaseModel):
     agent: str
     objective: str
@@ -271,9 +316,14 @@ class FindingEval(BaseModel):
 class VCRubric(BaseModel):
     relevance_score: int = Field(ge=1, le=10)
     tone_score: int = Field(ge=1, le=10)
+    citation_quality_score: int = Field(default=7, ge=1, le=10)
+    structure_score: int = Field(default=7, ge=1, le=10)
+    length_fit_score: int = Field(default=7, ge=1, le=10)
+    evidence_strength_score: int = Field(default=7, ge=1, le=10)
     hallucinations: list[FindingEval] = Field(default_factory=list)
     negative_constraint_violations: list[str] = Field(default_factory=list)
-    final_eval_score: int = Field(ge=0, le=100)
+    improvement_actions: list[str] = Field(default_factory=list)
+    final_eval_score: int = Field(default=0, ge=0, le=100)
     summary_feedback: str
 
 class WorkflowConfig(BaseModel):
@@ -292,6 +342,7 @@ class AgentSpec(BaseModel):
     default_tools: list[str] = Field(default_factory=list)
     allow_delegation: bool = False
     active: bool = True
+    failure_guidance: str | None = None
 
 
 class OutputProfileConfig(BaseModel):
@@ -339,6 +390,7 @@ class RunRequest(BaseModel):
     brief_path: Path | None = None
     output_profile: OutputProfile = OutputProfile.IC_MEMO
     approve_mode: ApproveMode = ApproveMode.AUTO
+    website: str | None = None
     sector: str | None = None
     stage: str | None = None
     geography: str | None = None
@@ -355,12 +407,12 @@ class RunRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_run_request(self) -> RunRequest:
-        if self.resume is None:
+        if self.resume is None and self.eval_only_dir is None:
             has_brief = self.brief_path is not None
             has_company = self.company_name is not None
             if not has_brief and not has_company:
                 raise ValueError(
-                    "Either --brief or --company is required unless --resume is used."
+                    "Either --brief or --company is required unless --resume or --eval-only-dir is used."
                 )
             if self.workflow is None:
                 self.workflow = WorkflowType.SOURCING
@@ -376,3 +428,10 @@ class RunArtifacts(BaseModel):
     bundle_path: Path
     pdf_path: Path | None = None
     one_pager_path: Path | None = None
+    report_html_path: Path | None = None
+    eval_path: Path | None = None
+    eval_report_path: Path | None = None
+    eval_report_html_path: Path | None = None
+    eval_prompt_path: Path | None = None
+    standards_path: Path | None = None
+    standards_html_path: Path | None = None

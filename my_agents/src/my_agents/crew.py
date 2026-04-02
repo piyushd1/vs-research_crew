@@ -20,4 +20,7 @@ def build_agent(
         tools=tools,
         verbose=verbose,
         allow_delegation=spec.allow_delegation,
+        max_iter=15,
+        max_retry_limit=2,
+        respect_context_window=True,
     )

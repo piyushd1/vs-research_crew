@@ -25,6 +25,24 @@ PACKAGE_ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG_DIR = PACKAGE_ROOT / "config"
 _DELIMITERS_RE = re.compile(r"[/_ \-]+")
 
+INTERACTIVE_SECTOR_CHOICES: list[tuple[str, str]] = [
+    ("general", "General / mixed"),
+    ("fintech", "Fintech"),
+    ("saas_ai", "SaaS / AI"),
+    ("consumer", "Consumer Tech / Consumer Internet"),
+    ("d2c", "Consumer Brand / D2C"),
+    ("healthtech", "HealthTech"),
+    ("edtech", "EdTech"),
+    ("b2b_services", "B2B Services"),
+    ("marketplaces", "Marketplaces / Commerce"),
+    ("logistics", "Logistics / Mobility / Supply Chain"),
+    ("agritech", "Agritech"),
+    ("climate", "Climate / Energy / EV"),
+    ("deeptech", "DeepTech / Space / Robotics"),
+    ("proptech", "PropTech"),
+    ("cybersecurity", "Cybersecurity"),
+]
+
 
 SECTOR_PROFILE_ALIASES = {
     "adtech": "saas_ai",
@@ -35,6 +53,8 @@ SECTOR_PROFILE_ALIASES = {
     "ai": "saas_ai",
     "b2b_marketplace": "marketplaces",
     "b2b_saas": "saas_ai",
+    "b2b_service": "b2b_services",
+    "b2b_services": "b2b_services",
     "b2c_marketplace": "marketplaces",
     "banking": "fintech",
     "beauty": "d2c",
@@ -55,6 +75,7 @@ SECTOR_PROFILE_ALIASES = {
     "consumer_brand": "d2c",
     "consumer_brands": "d2c",
     "consumer_internet": "consumer",
+    "consumer_tech": "consumer",
     "content": "consumer",
     "cyber_security": "cybersecurity",
     "cybersecurity": "cybersecurity",
@@ -181,6 +202,10 @@ def canonicalize_profile_key(value: str | None) -> str | None:
     if normalized is None:
         return None
     return SECTOR_PROFILE_ALIASES.get(normalized, normalized)
+
+
+def get_interactive_sector_choices() -> list[tuple[str, str]]:
+    return list(INTERACTIVE_SECTOR_CHOICES)
 
 
 @dataclass

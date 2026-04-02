@@ -1,0 +1,17 @@
+profile: b2b_services
+tiers:
+  company_site: 2
+  public_media: 3
+  startup_media: 4
+  regulator: 2
+india_priority_sources:
+  - Customer case studies, buyer-seller workflows, and partner ecosystem evidence
+  - GST, trade, logistics, MSME, and supply-chain references where relevant
+  - Operational footprint, warehouse, distributor, or procurement evidence
+  - MCA / ROC records and public operations disclosures
+  - Indian business, startup, and sector media
+founder_signal_sources:
+  - MCA / ROC filings
+  - Prior operating experience in procurement, manufacturing, logistics, or distribution
+  - Public press and startup media
+search_provider: serper

@@ -66,9 +66,14 @@ class FakeRunnerForEvals:
             return VCRubric(
                 relevance_score=9,
                 tone_score=8,
+                citation_quality_score=9,
+                structure_score=9,
+                length_fit_score=8,
+                evidence_strength_score=9,
                 hallucinations=[],
                 negative_constraint_violations=[],
-                final_eval_score=88,
+                improvement_actions=["Tighten evidence traceability."],
+                final_eval_score=0,
                 summary_feedback="Strong evaluation metrics without hallucinations.",
             )
         raise AssertionError(f"Unexpected response model: {response_model}")
@@ -114,6 +119,9 @@ class EvalBenchmarkTests(unittest.TestCase):
             run_dir = run_dirs[0]
 
             self.assertTrue((run_dir / "eval_score.json").exists())
+            self.assertTrue((run_dir / "eval_report.md").exists())
+            self.assertTrue((run_dir / "eval_report.html").exists())
+            self.assertTrue((run_dir / "eval_prompt.txt").exists())
             eval_data = VCRubric.model_validate_json((run_dir / "eval_score.json").read_text())
             self.assertEqual(eval_data.final_eval_score, 88)
 

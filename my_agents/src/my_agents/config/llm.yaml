@@ -1,9 +1,9 @@
 provider: openrouter
-model: openrouter/deepseek/deepseek-v3.2
+model: openrouter/deepseek/deepseek-r1
 base_url: https://openrouter.ai/api/v1
 api_key_env: OPENROUTER_API_KEY
 temperature: 0.2
-max_tokens: 4096
+max_tokens: 12000
 open_source_only: true
 allow_closed_models: false
 allowed_model_prefixes:
@@ -24,9 +24,13 @@ allowed_model_prefixes:
   - olmo
   - nemotron
 
-# Evaluation Model (LLM-as-a-Judge)
-# Cheap and powerful models on OpenRouter for evals:
-# - openrouter/meta-llama/llama-3.3-70b-instruct (default, open-source, excellent at JSON)
-# - openrouter/google/gemini-2.5-flash (extremely cheap & fast, requires allow_closed_models=true)
-# - openrouter/anthropic/claude-3.5-haiku (fast & logical, requires allow_closed_models=true)
+# Model selection guide (OpenRouter, cheapest to best):
+#
+# Research agents (need reasoning + tool use):
+#   - openrouter/deepseek/deepseek-r1       (best reasoning, very cheap ~$0.55/M input)
+#   - openrouter/qwen/qwen3-235b-a22b       (strong structured output, cheap)
+#   - openrouter/deepseek/deepseek-v3.2     (fast, cheaper, less reasoning)
+#
+# Evaluation model (LLM-as-a-judge):
+#   - openrouter/meta-llama/llama-3.3-70b-instruct (reliable JSON, cheap)
 eval_model: openrouter/meta-llama/llama-3.3-70b-instruct

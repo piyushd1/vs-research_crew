@@ -115,6 +115,8 @@ class E2ESmokeTests(unittest.TestCase):
             run_dir = run_dirs[0]
 
             self.assertTrue((run_dir / "report.md").exists())
+            self.assertTrue((run_dir / "report.html").exists())
+            self.assertTrue((run_dir / "report_validation.json").exists())
             self.assertTrue((run_dir / "execution.log").exists())
 
 if __name__ == "__main__":

@@ -86,6 +86,8 @@ class EvidenceRegistry:
         issues: list[AuditIssue] = []
         gaps: list[str] = []
         findings = self.findings()
+        brief_source_patterns = {"brief://", "company brief", "as stated in the brief", "from the brief"}
+
         for finding in findings:
             if required_citations and not finding.source_ref:
                 issues.append(
@@ -106,9 +108,47 @@ class EvidenceRegistry:
                         source_refs=[finding.source_ref],
                     )
                 )
+            # Check for circular reasoning (citing the brief as evidence)
+            if finding.source_ref and any(
+                pat in finding.source_ref.lower() for pat in brief_source_patterns
+            ):
+                issues.append(
+                    AuditIssue(
+                        title="Circular reasoning",
+                        severity=RiskLevel.MEDIUM,
+                        detail=f"Finding '{finding.claim}' cites the brief as evidence rather than independent sources.",
+                    )
+                )
+
+        # Check for score inflation across agents
+        for agent_result in self.findings_by_agent.values():
+            if agent_result.dimension_scores and agent_result.findings:
+                avg_score = sum(s.score for s in agent_result.dimension_scores) / len(
+                    agent_result.dimension_scores
+                )
+                avg_confidence = sum(f.confidence for f in agent_result.findings) / len(
+                    agent_result.findings
+                )
+                if avg_score >= 4.0 and avg_confidence < 0.6:
+                    issues.append(
+                        AuditIssue(
+                            title="Score inflation",
+                            severity=RiskLevel.MEDIUM,
+                            detail=(
+                                f"Agent '{agent_result.agent_name}' gave high dimension scores "
+                                f"(avg {avg_score:.1f}/5) despite low evidence confidence "
+                                f"({avg_confidence:.2f}). Scores may be inflated."
+                            ),
+                        )
+                    )
 
         if not findings:
             gaps.append("No specialist findings were produced.")
+
+        # Check for agents that produced zero findings
+        for agent_name, result in self.findings_by_agent.items():
+            if not result.findings:
+                gaps.append(f"Agent '{agent_name}' produced no findings.")
 
         return AuditResult(
             passed=not issues,

@@ -36,7 +36,8 @@ class RendererTests(unittest.TestCase):
             top_signals=["Signal 1", "Signal 2"],
             top_risks=["Risk 1"],
             open_questions=["Question 1"],
-            evidence_gaps=["Gap 1"]
+            evidence_gaps=["Gap 1"],
+            citations=["https://example.com/source-1"]
         )
 
     def test_ic_memo_renderer_includes_optional_sections(self) -> None:
@@ -49,6 +50,13 @@ class RendererTests(unittest.TestCase):
         self.assertIn("Strong team", rendered)
         self.assertIn("Signal 1", rendered)
         self.assertIn("Risk 1", rendered)
+        self.assertIn("## Citations", rendered)
+        self.assertIn("https://example.com/source-1", rendered)
+        # New: evidence gaps section
+        self.assertIn("## Evidence Gaps", rendered)
+        self.assertIn("Gap 1", rendered)
+        # New: scorecard table format
+        self.assertIn("| Team |", rendered)
 
     def test_one_pager_renderer_includes_optional_sections(self) -> None:
         rendered = render_one_pager(self.bundle)
@@ -67,6 +75,7 @@ class RendererTests(unittest.TestCase):
         self.assertIn("Market is good", rendered)
         self.assertIn("## Portfolio Health", rendered)
         self.assertIn("Very healthy", rendered)
+        self.assertIn("Weighted dimension score", rendered)
 
 if __name__ == "__main__":
     unittest.main()

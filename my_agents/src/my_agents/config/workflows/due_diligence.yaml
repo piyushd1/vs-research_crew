@@ -2,7 +2,7 @@ workflow: due_diligence
 description: "Deep diligence workflow for a single target company."
 tasks:
   - agent: financial_researcher
-    objective: "Review business model quality, revenue quality, burn, runway, and unit economics."
+    objective: "Review business model quality, public revenue-quality signal, burn and runway where available, and unit-economics proxies when private data is missing."
   - agent: marketing_gtm_researcher
     objective: "Assess GTM motion, positioning, customer acquisition, and traction."
   - agent: product_tech_researcher

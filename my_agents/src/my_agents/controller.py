@@ -16,12 +16,16 @@ from my_agents.configuration import (
     load_app_config,
     load_brief,
 )
+from my_agents.evals.judge import build_eval_prompt, evaluate_run
+from my_agents.evals.report_renderer import render_eval_report, render_standards_report
 from my_agents.evidence import EvidenceRegistry, combine_open_questions
+from my_agents.html_utils import markdownish_to_html_document
 from my_agents.integrations.linear_push import push_linear_issue
 from my_agents.llm_policy import build_llm
 from my_agents.pdf_export import export_pdf
+from my_agents.report_standards import assess_report_standards
 from my_agents.renderers import render_full_report, render_ic_memo, render_one_pager
-from my_agents.runner import AgentRunner, CrewAIAgentRunner
+from my_agents.runner import AgentFinalAnswerError, AgentRunner, CrewAIAgentRunner
 from my_agents.schemas import (
     ALLOWED_SECTION_KEYS,
     AgentFindingResult,
@@ -32,15 +36,48 @@ from my_agents.schemas import (
     CompletedAgentState,
     FindingsBundle,
     OutputProfile,
+    RiskLevel,
     RunArtifacts,
     RunRequest,
     RunState,
     ScorecardDimension,
     ScorecardSummary,
     SourcePriorityConfig,
+    WorkflowType,
     WorkflowTaskDefinition,
 )
 from my_agents.tools import build_tools
+
+
+WORKFLOW_DIMENSION_MULTIPLIERS: dict[str, dict[str, float]] = {
+    "sourcing": {
+        "market_size_and_growth": 1.0,
+        "founder_quality_and_signal": 1.0,
+        "business_model_and_unit_economics": 0.55,
+        "product_tech_differentiation": 0.45,
+        "india_regulatory_and_compliance_posture": 0.40,
+        "gtm_traction_and_momentum": 1.0,
+        "risk_profile": 0.80,
+    },
+    "due_diligence": {
+        "market_size_and_growth": 1.0,
+        "founder_quality_and_signal": 1.0,
+        "business_model_and_unit_economics": 1.0,
+        "product_tech_differentiation": 1.0,
+        "india_regulatory_and_compliance_posture": 1.0,
+        "gtm_traction_and_momentum": 1.0,
+        "risk_profile": 1.0,
+    },
+    "portfolio": {
+        "market_size_and_growth": 0.70,
+        "founder_quality_and_signal": 0.35,
+        "business_model_and_unit_economics": 1.0,
+        "product_tech_differentiation": 0.55,
+        "india_regulatory_and_compliance_posture": 1.0,
+        "gtm_traction_and_momentum": 0.90,
+        "risk_profile": 1.0,
+    },
+}
 
 
 class JSONFormatter(logging.Formatter):
@@ -81,17 +118,72 @@ class VCResearchController:
             bundle_path = run_dir / "findings_bundle.json"
             if not bundle_path.exists():
                 raise FileNotFoundError(f"findings_bundle.json not found in {run_dir}. Cannot evaluate.")
-
-            from my_agents.schemas import Brief, FindingsBundle
             bundle = FindingsBundle.model_validate_json(bundle_path.read_text(encoding="utf-8"))
-            brief = Brief(company_name=bundle.company_name, sector="general", geography="India")
+            run_state_path = run_dir / "run_state.json"
+            state = (
+                RunState.model_validate_json(run_state_path.read_text(encoding="utf-8"))
+                if run_state_path.exists()
+                else RunState(
+                    workflow=bundle.workflow,
+                    output_profile=OutputProfile.IC_MEMO,
+                    company_name=bundle.company_name,
+                )
+            )
+            brief_path = run_dir / "brief.json"
+            if brief_path.exists():
+                brief = load_brief(brief_path)
+            else:
+                brief = Brief(company_name=bundle.company_name, sector="general", geography="India")
+
+            report_path = run_dir / "report.md"
+            if report_path.exists():
+                report_text = report_path.read_text(encoding="utf-8")
+            elif state.output_profile == OutputProfile.FULL_REPORT:
+                report_text = render_full_report(bundle)
+            else:
+                report_text = render_ic_memo(bundle)
+
+            if state.output_profile == OutputProfile.ONE_PAGER:
+                rendered_output = (run_dir / "one_pager.html").read_text(encoding="utf-8")
+            else:
+                rendered_output = report_text
+            standards = assess_report_standards(
+                bundle=bundle,
+                workflow=state.workflow,
+                output_profile=state.output_profile,
+                rendered_output=rendered_output,
+                required_sections=config.output_profiles[state.output_profile.value].sections,
+            )
+            standards_path, standards_html_path = self._write_standards_artifacts(
+                run_dir=run_dir,
+                assessment=standards,
+            )
 
             self.print_fn(f"\nEvaluating existing run: {run_dir}")
-            from my_agents.evals.judge import evaluate_run
+            eval_path: Path | None = None
+            eval_report_path: Path | None = None
+            eval_report_html_path: Path | None = None
+            eval_prompt_path = run_dir / "eval_prompt.txt"
             try:
-                rubric = evaluate_run(brief, bundle, config, runner=self.runner, verbose=request.verbose)
-                eval_path = run_dir / "eval_score.json"
-                eval_path.write_text(rubric.model_dump_json(indent=2), encoding="utf-8")
+                prompt_text = build_eval_prompt(brief, bundle, standards)
+                eval_prompt_path.write_text(prompt_text, encoding="utf-8")
+                rubric = evaluate_run(
+                    brief,
+                    bundle,
+                    config,
+                    standards_assessment=standards,
+                    runner=self.runner,
+                    verbose=request.verbose,
+                    prompt_override=prompt_text,
+                )
+                eval_path, eval_report_path, eval_report_html_path = self._write_eval_artifacts(
+                    run_dir=run_dir,
+                    bundle=bundle,
+                    rubric=rubric,
+                    standards=standards,
+                    eval_model=config.llm.eval_model or config.llm.model,
+                    eval_prompt_path=eval_prompt_path,
+                )
                 self.print_fn(f"Evaluation Complete! Score: {rubric.final_eval_score}/100")
                 self.print_fn(f"Feedback: {rubric.summary_feedback}")
             except Exception as ev_exc:
@@ -99,11 +191,19 @@ class VCResearchController:
 
             return RunArtifacts(
                 run_dir=run_dir,
-                report_path=run_dir / "report.md",
+                report_path=report_path,
                 scorecard_path=run_dir / "scorecard.json",
                 sources_path=run_dir / "sources.json",
                 run_state_path=run_dir / "run_state.json",
                 bundle_path=bundle_path,
+                report_html_path=run_dir / "report.html" if (run_dir / "report.html").exists() else None,
+                one_pager_path=run_dir / "one_pager.html" if (run_dir / "one_pager.html").exists() else None,
+                eval_path=eval_path,
+                eval_report_path=eval_report_path,
+                eval_report_html_path=eval_report_html_path,
+                eval_prompt_path=eval_prompt_path if eval_prompt_path.exists() else None,
+                standards_path=standards_path,
+                standards_html_path=standards_html_path,
             )
 
         for warning in config.warnings:
@@ -132,6 +232,21 @@ class VCResearchController:
         weights = config.resolve_score_weights(brief.sector)
         evidence = EvidenceRegistry(source_profile=source_profile)
 
+        # Initialize RAG vector store
+        chroma_collection = None
+        indexer = None
+        try:
+            from my_agents.tools.rag_tool import DocumentIndexer
+            indexer = DocumentIndexer()
+            run_collection_id = f"{self._slugify(brief.company_name)}-{state.workflow.value}"
+            chroma_collection = indexer.create_collection(run_collection_id)
+            if brief.docs_dir:
+                doc_count = indexer.index_docs_dir(chroma_collection, brief.docs_dir)
+                if doc_count:
+                    self.print_fn(f"Indexed {doc_count} document chunks into vector store.")
+        except Exception as rag_exc:
+            self.print_fn(f"Warning: RAG initialization skipped: {rag_exc}")
+
         for completed in state.completed_agents:
             finding_path = run_dir / "findings" / f"{completed.agent_name}.json"
             if finding_path.exists():
@@ -152,21 +267,36 @@ class VCResearchController:
                 evidence=evidence,
                 source_profile=source_profile,
             )
-            tools = build_tools(brief, source_profile, task.agent)
+            tools = build_tools(brief, source_profile, task.agent, chroma_collection=chroma_collection)
             self._write_run_state(run_dir, state, workflow)
 
             logger.info(f"Starting agent: {task.agent}", extra={"step": "agent_start", "agent": task.agent})
             self.print_fn(f"\n[bold green]Starting Agent: {task.agent}[/]")
 
-            result = self.runner.run_agent(
-                agent_name=task.agent,
-                spec=config.agents[task.agent],
-                prompt=prompt,
-                response_model=AgentFindingResult,
-                llm=llm,
-                tools=tools,
-                verbose=request.verbose,
-            )
+            try:
+                result = self.runner.run_agent(
+                    agent_name=task.agent,
+                    spec=config.agents[task.agent],
+                    prompt=prompt,
+                    response_model=AgentFindingResult,
+                    llm=llm,
+                    tools=tools,
+                    verbose=request.verbose,
+                )
+            except AgentFinalAnswerError as exc:
+                logger.warning(
+                    f"Agent failed to finalize after retries: {task.agent}",
+                    extra={"step": "agent_fallback", "agent": task.agent},
+                )
+                self.print_fn(
+                    f"Warning: {task.agent} did not reach a final answer. "
+                    "Recording a conservative placeholder result and continuing."
+                )
+                result = self._build_failed_agent_result(
+                    agent_name=task.agent,
+                    spec=config.agents[task.agent],
+                    error=exc,
+                )
             if not isinstance(result, AgentFindingResult):
                 result = AgentFindingResult.model_validate(result.model_dump())
             result = self._normalize_agent_result(
@@ -179,6 +309,22 @@ class VCResearchController:
             self._persist_agent_result(run_dir, result)
             evidence.add_result(result)
             state.findings[task.agent] = result
+
+            # Index agent findings for cross-agent RAG
+            if indexer and chroma_collection is not None and result.findings:
+                try:
+                    findings_text = "\n".join(
+                        f"- {f.claim} (confidence: {f.confidence}, source: {f.source_ref})"
+                        for f in result.findings
+                    )
+                    indexer.index_agent_findings(
+                        chroma_collection,
+                        agent_name=task.agent,
+                        summary=result.summary,
+                        findings_text=findings_text,
+                    )
+                except Exception:
+                    pass  # RAG indexing is non-critical
 
             logger.info(
                 f"Completed agent: {task.agent}",
@@ -233,12 +379,20 @@ class VCResearchController:
         )
 
         report_path = run_dir / "report.md"
+        report_html_path = run_dir / "report.html"
         one_pager_path: Path | None = None
         pdf_path: Path | None = None
+        report_text = ""
+        rendered_output = ""
 
         if selected_profile == OutputProfile.IC_MEMO:
             report_text = render_ic_memo(bundle)
             report_path.write_text(report_text, encoding="utf-8")
+            report_html_path.write_text(
+                markdownish_to_html_document(report_text, f"{brief.company_name} IC Memo"),
+                encoding="utf-8",
+            )
+            rendered_output = report_text
             candidate_pdf_path = run_dir / "report.pdf"
             try:
                 export_pdf(report_text, candidate_pdf_path, f"{brief.company_name} IC Memo")
@@ -248,6 +402,11 @@ class VCResearchController:
         elif selected_profile == OutputProfile.FULL_REPORT:
             report_text = render_full_report(bundle)
             report_path.write_text(report_text, encoding="utf-8")
+            report_html_path.write_text(
+                markdownish_to_html_document(report_text, f"{brief.company_name} Full Report"),
+                encoding="utf-8",
+            )
+            rendered_output = report_text
             candidate_pdf_path = run_dir / "report.pdf"
             try:
                 export_pdf(report_text, candidate_pdf_path, f"{brief.company_name} Full Report")
@@ -257,8 +416,25 @@ class VCResearchController:
         else:
             report_text = render_ic_memo(bundle)
             report_path.write_text(report_text, encoding="utf-8")
+            report_html_path.write_text(
+                markdownish_to_html_document(report_text, f"{brief.company_name} One Pager Briefing"),
+                encoding="utf-8",
+            )
             one_pager_path = run_dir / "one_pager.html"
-            one_pager_path.write_text(render_one_pager(bundle), encoding="utf-8")
+            rendered_output = render_one_pager(bundle)
+            one_pager_path.write_text(rendered_output, encoding="utf-8")
+
+        standards = assess_report_standards(
+            bundle=bundle,
+            workflow=state.workflow,
+            output_profile=selected_profile,
+            rendered_output=rendered_output,
+            required_sections=config.output_profiles[state.output_profile.value].sections,
+        )
+        standards_path, standards_html_path = self._write_standards_artifacts(
+            run_dir=run_dir,
+            assessment=standards,
+        )
 
         try:
             push_linear_issue(
@@ -271,14 +447,34 @@ class VCResearchController:
         except Exception as exc:
             self.print_fn(f"Warning: Linear push skipped due to error: {exc}")
 
+        eval_path: Path | None = None
+        eval_report_path: Path | None = None
+        eval_report_html_path: Path | None = None
+        eval_prompt_path: Path | None = None
         if request.run_evals:
             self.print_fn("\nRunning VC Evaluation Judge...")
             logger.info("Starting subjective evaluations", extra={"step": "evaluate"})
-            from my_agents.evals.judge import evaluate_run
             try:
-                rubric = evaluate_run(brief, bundle, config, runner=self.runner, verbose=request.verbose)
-                eval_path = run_dir / "eval_score.json"
-                eval_path.write_text(rubric.model_dump_json(indent=2), encoding="utf-8")
+                prompt_text = build_eval_prompt(brief, bundle, standards)
+                eval_prompt_path = run_dir / "eval_prompt.txt"
+                eval_prompt_path.write_text(prompt_text, encoding="utf-8")
+                rubric = evaluate_run(
+                    brief,
+                    bundle,
+                    config,
+                    standards_assessment=standards,
+                    runner=self.runner,
+                    verbose=request.verbose,
+                    prompt_override=prompt_text,
+                )
+                eval_path, eval_report_path, eval_report_html_path = self._write_eval_artifacts(
+                    run_dir=run_dir,
+                    bundle=bundle,
+                    rubric=rubric,
+                    standards=standards,
+                    eval_model=config.llm.eval_model or config.llm.model,
+                    eval_prompt_path=eval_prompt_path,
+                )
                 self.print_fn(f"Evaluation Complete! Score: {rubric.final_eval_score}/100")
                 self.print_fn(f"Feedback: {rubric.summary_feedback}")
             except Exception as ev_exc:
@@ -300,6 +496,13 @@ class VCResearchController:
             bundle_path=bundle_path,
             pdf_path=pdf_path,
             one_pager_path=one_pager_path,
+            report_html_path=report_html_path,
+            eval_path=eval_path,
+            eval_report_path=eval_report_path,
+            eval_report_html_path=eval_report_html_path,
+            eval_prompt_path=eval_prompt_path,
+            standards_path=standards_path,
+            standards_html_path=standards_html_path,
         )
 
     def _prepare_run_context(
@@ -325,6 +528,8 @@ class VCResearchController:
         assert request.workflow is not None
         if request.brief_path:
             brief = load_brief(request.brief_path)
+            if request.website:
+                brief.website = request.website
             if request.sector:
                 brief.sector = request.sector
             if request.stage:
@@ -336,6 +541,7 @@ class VCResearchController:
         elif request.company_name:
             brief = Brief(
                 company_name=request.company_name,
+                website=request.website or "Unknown",
                 sector=request.sector or "general",
                 stage=request.stage or "unknown",
                 geography=request.geography or "India",
@@ -346,6 +552,16 @@ class VCResearchController:
                 brief.docs_dir = request.docs_dir
         else:
             raise ValueError("Either --brief or --company must be provided.")
+
+        if (
+            request.workflow == WorkflowType.DUE_DILIGENCE
+            and not brief.docs_dir
+            and brief.website == "Unknown"
+        ):
+            self.print_fn(
+                "Warning: due_diligence works better with a website or a docs directory. "
+                "Without those, financial and product findings will rely on limited public evidence."
+            )
 
         company_slug = self._slugify(brief.company_name)
         timestamp = self.now_fn().strftime("%Y-%m-%d_%H%M%S")
@@ -427,6 +643,17 @@ class VCResearchController:
                 + "\n"
             )
 
+        financial_block = ""
+        if task.agent == "financial_researcher":
+            financial_block = (
+                "Financial diligence guidance:\n"
+                "- Exact burn, runway, and contribution margin are often not public. Do not loop trying to force exact numbers.\n"
+                "- If the financial_signal_search tool is available, use it early to gather a compact public-finance packet before making conclusions.\n"
+                "- If uploaded docs are missing, use public proxies such as reported revenue, funding history, pricing, gross-margin hints, working-capital signals, and partner or distribution disclosures.\n"
+                "- If website data is missing too, do at most 2 web searches, return the strongest public finance signal you found, and clearly list the missing diligence items.\n"
+                "- A conservative final answer with explicit open questions is better than repeated searching.\n\n"
+            )
+
         docs_block = ""
         if brief.docs_dir:
             docs_block = (
@@ -450,8 +677,29 @@ class VCResearchController:
             f"- {name}" for name in ("evidence_auditor", "report_synthesizer")
         )
 
+        prompt_notes_block = ""
+        if spec.prompt_notes:
+            prompt_notes_block = (
+                "RESEARCH FRAMEWORK (follow this structure):\n"
+                + "\n".join(f"- {note}" for note in spec.prompt_notes)
+                + "\n\n"
+            )
+
+        failure_guidance_block = ""
+        failure_guidance = getattr(spec, "failure_guidance", None)
+        if failure_guidance:
+            failure_guidance_block = (
+                "IF DATA IS SPARSE (read this carefully):\n"
+                f"{failure_guidance}\n\n"
+            )
+
         return (
             f"{injected_context}"
+            "--- RESEARCH PLANNING (think before you search) ---\n"
+            "Before using any tools, mentally plan:\n"
+            "1. What are the 3-5 most important questions to answer?\n"
+            "2. What sources are most likely to have this data?\n"
+            "3. What will you do if primary sources don't have the data?\n\n"
             f"You are {spec.role}.\n"
             f"Goal: {spec.goal}\n"
             f"Backstory: {spec.backstory}\n\n"
@@ -469,21 +717,32 @@ class VCResearchController:
             f"Prior evidence summary:\n{evidence.summary()}\n\n"
             f"{focus_block}"
             f"{exclude_block}"
+            f"{prompt_notes_block}"
             f"India-first source priorities:\n{source_notes}\n\n"
             f"{docs_block}"
+            f"{scoring_block}"
+            f"{financial_block}"
+            f"{failure_guidance_block}"
+            "--- RESEARCH DISCIPLINE ---\n"
+            "- Use at most 6 tool calls total. Quality over quantity.\n"
+            "- Prioritize: official sources > India business media > general web.\n"
+            "- If a search returns nothing useful, DO NOT repeat similar queries. Move on.\n"
+            "- You MUST return a final structured answer even if evidence is thin.\n"
+            "- A conservative answer with explicit gaps is better than looping forever.\n"
+            "- If evidence is weak or conflicting, record an open question instead of stretching the claim.\n\n"
+            "--- SELF-CRITIQUE CHECKLIST (verify before submitting) ---\n"
+            "Before producing your final JSON, verify:\n"
+            "[ ] Every claim has a specific source (not 'various sources' or 'industry reports')\n"
+            "[ ] Confidence scores reflect actual evidence (don't default everything to 0.8)\n"
+            "[ ] Open questions list everything you could NOT verify\n"
+            "[ ] Dimension scores use the scoring rubric, not gut feel\n"
+            "[ ] No claims are merely restating the company brief\n\n"
             "When adding downstream_flags.for_agent, use ONLY these exact agent ids:\n"
             f"{workflow_agent_ids}\n{control_agent_ids}\n\n"
-            f"{scoring_block}"
-            "Research discipline rules:\n"
-            "- Use at most 4 external web searches unless the evidence is clearly insufficient.\n"
-            "- Prioritize sources in this order: official company or regulator sources, high-signal India business media, one customer or marketplace proof point, then one market or competitor check.\n"
-            "- Avoid repetitive query variants once you already have enough evidence to answer.\n"
-            "- Do not use social posts or reposted snippets for core claims unless corroborated by a stronger source.\n"
-            "- If evidence is weak or conflicting, record an open question instead of stretching the claim.\n\n"
+            f"{founder_signal_block}"
             "Use suggested_section_keys only from this allowed set:\n"
             + "\n".join(f"- {item}" for item in sorted(ALLOWED_SECTION_KEYS))
             + "\n\n"
-            f"{founder_signal_block}"
             "Produce a structured result with cited findings, confidence scores, open questions, "
             "dimension scores where relevant, and downstream flags only when another named agent "
             "should investigate something further."
@@ -531,12 +790,37 @@ class VCResearchController:
         weights: dict[str, int],
         verbose: bool,
     ) -> FindingsBundle:
-        scorecard = self._build_scorecard(list(state.findings.values()), weights)
+        scorecard = self._build_scorecard(
+            list(state.findings.values()),
+            weights,
+            state.workflow,
+            audit,
+        )
         fallback_bundle = self._build_fallback_bundle(config, brief, state, evidence, audit, scorecard)
         prompt = (
             "Synthesize the VC diligence record into a structured findings bundle.\n\n"
             f"Company: {brief.company_name}\n"
-            f"Workflow: {state.workflow.value}\n"
+            f"Workflow: {state.workflow.value}\n\n"
+            "--- WRITING GUIDELINES ---\n"
+            "Write like a senior VC analyst preparing an IC memo:\n"
+            "- Lead with conclusions, then evidence\n"
+            "- Use specific data points: numbers, dates, named sources\n"
+            "- No marketing language ('revolutionary', 'game-changing', 'disruptive')\n"
+            "- Acknowledge gaps honestly rather than padding with vague statements\n"
+            "- Each section should be 100-300 words with at least 2 specific data points\n\n"
+            "--- SECTION REQUIREMENTS ---\n"
+            "executive_summary: 3-4 sentences. Verdict first, then 2 key evidence points, then biggest risk.\n"
+            "company_snapshot: Founded when, by whom, what they do, funding to date, stage, key metrics.\n"
+            "market_landscape: TAM/SAM/SOM, 3-5 competitors named, India-specific dynamics.\n"
+            "financial_analysis: Revenue model, growth rate, unit economics (or proxies), burn/runway.\n"
+            "product_technology: What the product does, tech differentiation, IP, engineering signals.\n"
+            "founder_assessment: Founder background, domain expertise, team completeness.\n"
+            "gtm_momentum: GTM motion type, traction metrics, customer acquisition evidence.\n"
+            "regulatory_compliance: Applicable regulations, compliance status, risks.\n"
+            "risk_register: Top 3-5 risks with probability and impact assessment.\n"
+            "investment_recommendation: INVEST/PASS/CONDITIONAL with 2-3 reasons.\n\n"
+            "If a section has NO real evidence from the agents, write: "
+            "'Insufficient evidence. Key gap: [what is missing].'\n\n"
             f"Scorecard: {scorecard.model_dump_json(indent=2)}\n"
             f"Audit: {audit.model_dump_json(indent=2)}\n"
             f"Findings: {json.dumps({name: result.model_dump() for name, result in state.findings.items()}, indent=2)}\n"
@@ -651,42 +935,194 @@ class VCResearchController:
             citations=[item["source_ref"] for item in evidence.unique_sources()],
         )
 
+    def _write_standards_artifacts(
+        self,
+        run_dir: Path,
+        assessment: object,
+    ) -> tuple[Path, Path]:
+        standards_path = run_dir / "report_validation.json"
+        standards_path.write_text(
+            assessment.model_dump_json(indent=2), encoding="utf-8"
+        )
+        standards_report_path = run_dir / "report_validation.md"
+        standards_report = render_standards_report(assessment)
+        standards_report_path.write_text(standards_report, encoding="utf-8")
+        standards_html_path = run_dir / "report_validation.html"
+        standards_html_path.write_text(
+            markdownish_to_html_document(standards_report, "Report Standards Validation"),
+            encoding="utf-8",
+        )
+        return standards_path, standards_html_path
+
+    def _write_eval_artifacts(
+        self,
+        run_dir: Path,
+        bundle: FindingsBundle,
+        rubric: object,
+        standards: object,
+        eval_model: str,
+        eval_prompt_path: Path | None,
+    ) -> tuple[Path, Path, Path]:
+        eval_path = run_dir / "eval_score.json"
+        eval_path.write_text(rubric.model_dump_json(indent=2), encoding="utf-8")
+        eval_report_path = run_dir / "eval_report.md"
+        eval_report = render_eval_report(
+            bundle=bundle,
+            rubric=rubric,
+            assessment=standards,
+            eval_model=eval_model,
+            prompt_path=str(eval_prompt_path) if eval_prompt_path else None,
+        )
+        eval_report_path.write_text(eval_report, encoding="utf-8")
+        eval_report_html_path = run_dir / "eval_report.html"
+        eval_report_html_path.write_text(
+            markdownish_to_html_document(eval_report, f"{bundle.company_name} Eval Report"),
+            encoding="utf-8",
+        )
+        return eval_path, eval_report_path, eval_report_html_path
+
     def _build_scorecard(
         self,
         results: list[AgentFindingResult],
         weights: dict[str, int],
+        workflow: object,
+        audit: AuditResult,
     ) -> ScorecardSummary:
-        dimension_map: dict[str, list[tuple[int, str]]] = {}
+        dimension_map: dict[str, list[dict[str, object]]] = {}
         for result in results:
+            findings = result.findings or []
+            evidence_count = len(findings)
+            average_confidence = (
+                sum(finding.confidence for finding in findings) / evidence_count
+                if evidence_count
+                else 0.55
+            )
+            medium_conflicts = sum(
+                1 for finding in findings if finding.conflict_level.value == "medium"
+            )
+            high_conflicts = sum(
+                1 for finding in findings if finding.conflict_level.value == "high"
+            )
+            conflict_ratio = (
+                ((medium_conflicts * 0.5) + high_conflicts) / max(evidence_count, 1)
+            )
+            entry_weight = max(0.35, average_confidence) * (1 + min(evidence_count, 3) * 0.15)
             for score in result.dimension_scores:
                 dimension_map.setdefault(score.dimension, []).append(
-                    (score.score, score.rationale)
+                    {
+                        "score": score.score,
+                        "rationale": score.rationale,
+                        "weight": entry_weight,
+                        "evidence_count": evidence_count,
+                        "average_confidence": average_confidence,
+                        "conflict_ratio": conflict_ratio,
+                    }
                 )
 
+        workflow_key = getattr(workflow, "value", str(workflow))
+        multipliers = WORKFLOW_DIMENSION_MULTIPLIERS.get(
+            workflow_key,
+            WORKFLOW_DIMENSION_MULTIPLIERS["due_diligence"],
+        )
+        active_weights = {
+            dimension: max(0.0, weight * multipliers.get(dimension, 1.0))
+            for dimension, weight in weights.items()
+        }
+        total_active_weight = sum(active_weights.values()) or 1.0
+        normalized_weights: dict[str, int] = {}
+        consumed_weight = 0
+        active_dimensions = list(weights.keys())
+        for index, dimension in enumerate(active_dimensions):
+            if index == len(active_dimensions) - 1:
+                normalized_weights[dimension] = max(0, 100 - consumed_weight)
+            else:
+                normalized = round((active_weights[dimension] / total_active_weight) * 100)
+                normalized_weights[dimension] = normalized
+                consumed_weight += normalized
+
         dimensions: list[ScorecardDimension] = []
-        weighted_total = 0.0
-        for dimension, weight in weights.items():
+        weighted_dimension_score = 0.0
+        confidence_index = 0.0
+        coverage_index = 0.0
+        conflict_index = 0.0
+        for dimension in active_dimensions:
+            weight = normalized_weights[dimension]
             entries = dimension_map.get(dimension, [])
             if entries:
-                average = round(sum(value for value, _ in entries) / len(entries))
-                rationale = entries[-1][1]
+                total_entry_weight = sum(float(entry["weight"]) for entry in entries) or 1.0
+                weighted_mean = sum(
+                    int(entry["score"]) * float(entry["weight"])
+                    for entry in entries
+                ) / total_entry_weight
+                average_confidence = sum(
+                    float(entry["average_confidence"]) * float(entry["weight"])
+                    for entry in entries
+                ) / total_entry_weight
+                conflict_ratio = sum(
+                    float(entry["conflict_ratio"]) * float(entry["weight"])
+                    for entry in entries
+                ) / total_entry_weight
+                evidence_count = sum(int(entry["evidence_count"]) for entry in entries)
+                coverage_ratio = min(1.0, evidence_count / 4.0)
+                support_bonus = max(0.0, coverage_ratio - 0.5) * 0.4
+                confidence_penalty = max(0.0, 0.6 - average_confidence) * 1.25
+                conflict_penalty = min(1.0, conflict_ratio * 1.2)
+                adjusted_score = weighted_mean + support_bonus - confidence_penalty - conflict_penalty
+                score_value = max(1, min(5, round(adjusted_score)))
+                rationale = (
+                    f"{entries[-1]['rationale']} Evidence-backed score from {len(entries)} specialist view(s), "
+                    f"{evidence_count} finding(s), {average_confidence:.2f} average confidence, "
+                    f"and {conflict_ratio:.2f} conflict load."
+                )
             else:
-                average = 3
-                rationale = "No specialist score supplied; using neutral baseline."
+                average_confidence = 0.0
+                conflict_ratio = 0.0
+                evidence_count = 0
+                coverage_ratio = 0.0
+                score_value = 2 if multipliers.get(dimension, 1.0) >= 0.8 else 3
+                rationale = (
+                    "No relevant specialist score supplied; dimension kept conservative "
+                    "instead of using a neutral default."
+                )
             dimensions.append(
                 ScorecardDimension(
                     dimension=dimension,
                     weight=weight,
-                    score=average,
+                    score=score_value,
                     rationale=rationale,
+                    evidence_count=evidence_count,
+                    average_confidence=average_confidence,
+                    coverage_ratio=coverage_ratio,
+                    conflict_ratio=conflict_ratio,
                 )
             )
-            weighted_total += average * weight
+            normalized_dimension_score = ((score_value - 1) / 4.0) * 100.0
+            weighted_dimension_score += normalized_dimension_score * (weight / 100.0)
+            confidence_index += average_confidence * 100.0 * (weight / 100.0)
+            coverage_index += coverage_ratio * 100.0 * (weight / 100.0)
+            conflict_index += conflict_ratio * 100.0 * (weight / 100.0)
 
-        overall = (weighted_total / 100.0) * 20.0
-        if overall < 50:
+        high_issue_count = sum(
+            1 for issue in audit.issues if issue.severity == RiskLevel.HIGH
+        )
+        medium_issue_count = sum(
+            1 for issue in audit.issues if issue.severity == RiskLevel.MEDIUM
+        )
+        gap_penalty = min(
+            18.0,
+            (len(audit.gaps) * 2.0) + (high_issue_count * 3.0) + (medium_issue_count * 1.5),
+        )
+        overall = (
+            weighted_dimension_score
+            + ((confidence_index - 60.0) * 0.15)
+            + ((coverage_index - 50.0) * 0.10)
+            - (conflict_index * 0.08)
+            - gap_penalty
+        )
+        overall = max(0.0, min(100.0, round(overall, 1)))
+        if overall < 55:
             recommendation = "PASS"
-        elif overall > 75:
+        elif overall >= 75:
             recommendation = "STRONG INTEREST"
         else:
             recommendation = "CONDITIONAL"
@@ -695,6 +1131,11 @@ class VCResearchController:
             overall_score=overall,
             recommendation=recommendation,
             dimensions=dimensions,
+            weighted_dimension_score=round(weighted_dimension_score, 1),
+            confidence_index=round(confidence_index, 1),
+            coverage_index=round(coverage_index, 1),
+            conflict_index=round(conflict_index, 1),
+            gap_penalty=round(gap_penalty, 1),
         )
 
     def _handle_checkpoint(
@@ -721,6 +1162,29 @@ class VCResearchController:
         findings_dir.mkdir(parents=True, exist_ok=True)
         finding_path = findings_dir / f"{result.agent_name}.json"
         finding_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+
+    def _build_failed_agent_result(
+        self,
+        agent_name: str,
+        spec: object,
+        error: Exception,
+    ) -> AgentFindingResult:
+        role = getattr(spec, "role", agent_name)
+        return AgentFindingResult(
+            agent_name=agent_name,
+            summary=(
+                f"{role} did not complete successfully after repeated attempts. "
+                "Treat this workstream as unresolved."
+            ),
+            findings=[],
+            open_questions=[
+                f"{role} could not finish automatically. Revisit this workstream manually. Error: {error}"
+            ],
+            dimension_scores=[],
+            downstream_flags=[],
+            sources_checked=[],
+            suggested_section_keys=[],
+        )
 
     def _normalize_agent_result(
         self,

@@ -24,6 +24,8 @@ class SectorCoverageTests(unittest.TestCase):
             ("micro_lending", "fintech"),
             ("regtech", "fintech"),
             ("supply chain finance", "fintech"),
+            ("consumer tech", "consumer"),
+            ("b2b services", "b2b_services"),
             ("gaming", "consumer"),
             ("media", "consumer"),
             ("ott", "consumer"),
@@ -82,7 +84,7 @@ class SectorCoverageTests(unittest.TestCase):
 
     def test_all_alias_values_are_valid_canonical_sectors(self) -> None:
         valid_sectors = {
-            "agritech", "climate", "consumer", "cybersecurity", "d2c",
+            "agritech", "b2b_services", "climate", "consumer", "cybersecurity", "d2c",
             "deeptech", "edtech", "fintech", "healthtech", "logistics",
             "marketplaces", "proptech", "saas_ai",
         }
