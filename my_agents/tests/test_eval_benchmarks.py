@@ -123,7 +123,7 @@ class EvalBenchmarkTests(unittest.TestCase):
             self.assertTrue((run_dir / "eval_report.html").exists())
             self.assertTrue((run_dir / "eval_prompt.txt").exists())
             eval_data = VCRubric.model_validate_json((run_dir / "eval_score.json").read_text())
-            self.assertEqual(eval_data.final_eval_score, 88)
+            self.assertEqual(eval_data.final_eval_score, 84)
 
 
 if __name__ == "__main__":

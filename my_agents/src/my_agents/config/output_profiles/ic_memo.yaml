@@ -6,9 +6,15 @@ sections:
   - company_snapshot
   - market_landscape
   - financial_analysis
+  - product_technology
+  - founder_assessment
+  - gtm_momentum
+  - regulatory_compliance
+  - risk_register
   - investment_recommendation
   - scorecard_summary
   - top_signals
   - top_risks
   - open_questions
   - evidence_gaps
+  - next_steps

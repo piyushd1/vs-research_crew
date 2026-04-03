@@ -47,6 +47,7 @@ startup_sourcer:
     - "If data is missing, explicitly state what's missing rather than omitting."
     - "Use Inc42, YourStory, Entrackr, The Ken, Economic Times Startup for India startup data."
     - "Use tracxn_company_lookup and crunchbase_company_lookup tools to get funding data."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
   failure_guidance: >
     If you cannot find detailed information, return the company name, website, and whatever basic
     facts are publicly available. A thin but accurate snapshot is better than nothing. Mark confidence
@@ -64,6 +65,8 @@ thesis_fit_analyst:
     - "Assess TAM/SAM/SOM with specific numbers where available."
     - "Compare company stage to typical fund investment criteria."
     - "Flag if company is too early or too late for typical early-stage VC."
+    - "OUTPUT: Your summary should be 300-400 words with TAM/SAM/SOM numbers and thesis fit assessment."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 market_mapper:
   role: "Market Mapper"
@@ -81,6 +84,7 @@ market_mapper:
     - "Use tracxn_company_lookup to find competitor funding data."
     - "Provide TAM/SAM/SOM estimates with source citations."
     - "Identify India-specific tailwinds (policy, demographics, digital adoption) and headwinds (regulation, infrastructure)."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
   failure_guidance: >
     If market data is unavailable, estimate TAM from proxies (adjacent markets, government data, industry reports).
     Always name at least 2-3 competitors even if funding data is sparse. Mark estimates with low confidence.
@@ -100,6 +104,8 @@ founder_signal_analyst:
     - "Check IP India for patents filed by founders."
     - "Check media coverage in Inc42, YourStory, ET Startup for founder interviews and track record."
     - "Assess: prior exits, domain expertise years, team completeness (tech + business + ops), academic background."
+    - "OUTPUT: Your summary should be 300-400 words with founder backgrounds, prior experience, and team completeness assessment."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
   failure_guidance: >
     If founder information is sparse, focus on what IS available: company age, team size from website,
     any media interviews. Score conservatively (2-3) with explicit gaps noted.
@@ -128,6 +134,7 @@ financial_researcher:
     - "Use tofler_company_lookup to get MCA filing data (CIN, capital, directors, revenue bracket)."
     - "Use tracxn_company_lookup and crunchbase_company_lookup for funding history and valuation."
     - "Check MCA filings for reported revenue ranges."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
   failure_guidance: >
     Financial data for private Indian companies is often unavailable. This is EXPECTED.
     When data is sparse: (1) Check MCA/ROC filings for revenue brackets, (2) Estimate burn from
@@ -151,6 +158,7 @@ marketing_gtm_researcher:
     - "Check website traffic signals (SimilarWeb mentions in media)."
     - "Look for customer logos, case studies, partnership announcements."
     - "Assess pricing strategy: freemium, subscription, usage-based, take-rate."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
   failure_guidance: >
     For early-stage companies, traction data is often limited. Use proxies: app store reviews/ratings,
     social media following, job postings (indicates growth), partnership announcements. Score conservatively
@@ -168,6 +176,8 @@ investment_analyst:
     - "Structure as: INVEST BECAUSE (2-3 conviction points) / PASS BECAUSE (2-3 concerns) / CONDITIONAL ON (2-3 items)"
     - "Each point must reference specific evidence from prior agents' findings."
     - "Do not introduce new research — synthesize what exists."
+    - "OUTPUT: Your summary should be 300-500 words structured as: INVEST BECAUSE (2-3 points) / PASS BECAUSE (2-3 points) / CONDITIONAL ON (2-3 items)."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 product_tech_researcher:
   role: "Product and Technology Researcher"
@@ -184,6 +194,8 @@ product_tech_researcher:
     - "Check IP India or Google Patents for patent filings."
     - "Assess: Is this a tech product or a services business? What's the technical moat?"
     - "SCORING: 5=deep tech moat with patents/IP; 4=strong product with clear differentiation; 3=solid product, moderate differentiation; 2=me-too product; 1=no clear product"
+    - "OUTPUT: Your summary should be 300-400 words with product features, tech stack, IP count, and engineering signals."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 customer_competition_analyst:
   role: "Customer and Competition Analyst"
@@ -198,6 +210,8 @@ customer_competition_analyst:
     - "Map 3-5 competitors and their positioning relative to the target company."
     - "Look for customer reviews, case studies, NPS mentions, and retention data."
     - "Assess switching costs: high (enterprise SaaS with integrations) vs low (consumer app)."
+    - "OUTPUT: Your summary should be 300-500 words with 3-5 named competitors and customer profile."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 india_regulatory_legal_analyst:
   role: "India Regulatory and Legal Analyst"
@@ -214,6 +228,8 @@ india_regulatory_legal_analyst:
     - "Assess DPDP Act (India data protection) compliance readiness."
     - "Check for FEMA/FDI compliance if foreign investors are involved."
     - "Look for NCLT filings, consumer court cases, or regulatory actions."
+    - "OUTPUT: Your summary should be 300-400 words with specific regulatory frameworks, compliance status, and filing references."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
   failure_guidance: >
     If specific regulatory filings are not accessible, document which checks you attempted.
     Note the regulatory framework that APPLIES to this company even if you can't verify compliance.
@@ -233,6 +249,9 @@ risk_red_team_analyst:
     - "Challenge overly optimistic claims from prior agents."
     - "Look for risks NOT covered by other agents: founder concentration, key-person dependency, single point of failure."
     - "Your job is adversarial — find weaknesses, don't confirm strengths."
+    - "OUTPUT: Your summary should be 300-500 words with top 5 risks, each having probability/impact assessment."
+    - "SCORING RUBRIC for risk_profile: 5=minimal risk, strong mitigations; 4=moderate risk; 3=meaningful risk; 2=significant risk; 1=severe unmitigated risk. LOWER score = MORE risk found."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 valuation_scenarios_analyst:
   role: "Valuation and Scenarios Analyst"
@@ -247,12 +266,17 @@ valuation_scenarios_analyst:
     - "Use comparable Indian startup valuations (cite specific examples if known)."
     - "Base case: continuation of current trajectory. Upside: what goes right. Downside: what goes wrong."
     - "Tie each scenario back to specific diligence findings."
+    - "OUTPUT: Your summary should be 300-500 words with base/upside/downside scenarios and comparable valuations."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 portfolio_monitor:
   role: "Portfolio Monitor"
   goal: "Summarize the current state of a portfolio company with specific KPIs and momentum signals."
   backstory: "You support portfolio health reviews and partner updates with data-driven summaries."
   source_focus: ["uploaded_private", "company_site", "public_web"]
+  prompt_notes:
+    - "OUTPUT: Your summary MUST be at least 300 words with 5+ specific data points. Short summaries are unacceptable."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 kpi_burn_analyst:
   role: "KPI and Burn Analyst"
@@ -260,15 +284,24 @@ kpi_burn_analyst:
   backstory: "You review company KPIs with an investor's eye for variance, burn rate, and financial health."
   source_focus: ["uploaded_private", "csv_data"]
   scoring_dimensions: ["business_model_and_unit_economics"]
+  prompt_notes:
+    - "OUTPUT: Your summary MUST be at least 300 words with 5+ specific data points. Short summaries are unacceptable."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 growth_ops_analyst:
   role: "Growth Ops Analyst"
   goal: "Identify practical growth and operating support opportunities with specific recommendations."
   backstory: "You think like a hands-on portfolio support operator looking for high-leverage interventions."
   source_focus: ["internal_findings", "uploaded_private", "public_web"]
+  prompt_notes:
+    - "OUTPUT: Your summary MUST be at least 300 words with 5+ specific data points. Short summaries are unacceptable."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."
 
 risk_alert_analyst:
   role: "Risk Alert Analyst"
   goal: "Detect risk triggers that require immediate investor attention with specific evidence."
   backstory: "You watch for signs that a company needs intervention: cash crunch, key departures, regulatory action, competitive threat."
   source_focus: ["internal_findings", "regulator", "public_web"]
+  prompt_notes:
+    - "OUTPUT: Your summary MUST be at least 300 words with 5+ specific data points. Short summaries are unacceptable."
+    - "CITATION: Every source_ref must be a specific URL or document identifier (e.g., 'https://inc42.com/...' or 'MCA filing CIN U12345'). Never use vague references like 'media reports' or 'industry sources'."

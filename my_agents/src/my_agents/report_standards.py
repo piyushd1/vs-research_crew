@@ -16,15 +16,23 @@ VISIBLE_TEXT_RE = re.compile(r"<[^>]+>")
 WORD_RE = re.compile(r"\b[\w/-]+\b")
 
 WORD_RANGES: dict[OutputProfile, tuple[int, int]] = {
-    OutputProfile.IC_MEMO: (1200, 2500),
-    OutputProfile.FULL_REPORT: (2500, 5000),
-    OutputProfile.ONE_PAGER: (300, 800),
+    OutputProfile.IC_MEMO: (3500, 6000),
+    OutputProfile.FULL_REPORT: (4500, 8000),
+    OutputProfile.ONE_PAGER: (400, 1000),
 }
 
 MIN_CITATIONS: dict[OutputProfile, int] = {
     OutputProfile.IC_MEMO: 5,
     OutputProfile.FULL_REPORT: 10,
     OutputProfile.ONE_PAGER: 4,
+}
+
+# Sections that live as list/object fields on FindingsBundle, not in sections dict
+_LIST_FIELD_SECTIONS = {
+    "top_signals": "top_signals",
+    "top_risks": "top_risks",
+    "open_questions": "open_questions",
+    "evidence_gaps": "evidence_gaps",
 }
 
 INDUSTRY_PROFILE_LABELS: dict[tuple[WorkflowType, OutputProfile], str] = {
@@ -46,6 +54,17 @@ def _visible_text(rendered_output: str) -> str:
     return rendered_output
 
 
+def _is_section_present(key: str, bundle: FindingsBundle) -> bool:
+    """Check whether a section key has content, checking list fields and scorecard too."""
+    if key in _LIST_FIELD_SECTIONS:
+        field_name = _LIST_FIELD_SECTIONS[key]
+        field_value = getattr(bundle, field_name, None)
+        return bool(field_value)
+    if key == "scorecard_summary":
+        return bool(bundle.scorecard and bundle.scorecard.dimensions)
+    return bool(bundle.sections.get(key, "").strip())
+
+
 def assess_report_standards(
     bundle: FindingsBundle,
     workflow: WorkflowType,
@@ -59,7 +78,7 @@ def assess_report_standards(
     word_count = len(WORD_RE.findall(visible_text))
     citation_count = len(bundle.citations)
     present_sections = [
-        key for key in required_sections if bundle.sections.get(key, "").strip()
+        key for key in required_sections if _is_section_present(key, bundle)
     ]
     missing_sections = [key for key in required_sections if key not in present_sections]
     section_coverage = len(present_sections) / max(len(required_sections), 1)
