@@ -39,7 +39,7 @@ allowed_model_prefixes:
 #   synthesis_model: openrouter/z-ai/glm-5  ($0.72/M input, near GPT-5.2 level)
 #
 # Evaluation (LLM-as-a-judge, structured JSON output):
-#   eval_model: openrouter/qwen/qwen3-235b-a22b-instruct-2507  ($0.07/M input)
+#   eval_model: openrouter/qwen/qwen3.6-plus:free  (free tier)
 
 synthesis_model: openrouter/z-ai/glm-5
-eval_model: openrouter/qwen/qwen3-235b-a22b-instruct-2507
+eval_model: openrouter/qwen/qwen3.6-plus:free
