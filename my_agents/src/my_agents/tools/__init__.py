@@ -33,6 +33,7 @@ def build_tools(
     source_profile: SourcePriorityConfig,
     agent_name: str,
     chroma_collection: object | None = None,
+    downloads_dir: str | None = None,
 ) -> list[object]:
     from my_agents.tools.custom_tool import (
         CSVPreviewTool,
@@ -63,6 +64,17 @@ def build_tools(
         try:
             from my_agents.tools.rag_tool import DataRoomSearchTool
             tools.append(DataRoomSearchTool(collection=chroma_collection))
+        except Exception:
+            pass
+
+    # Document download tool (downloads PDFs/CSVs, extracts text, indexes into RAG)
+    if downloads_dir and agent_name not in _INTERNAL_ANALYSIS_AGENTS:
+        try:
+            from my_agents.tools.document_download_tool import DocumentDownloadTool
+            tools.append(DocumentDownloadTool(
+                downloads_dir=downloads_dir,
+                chroma_collection=chroma_collection,
+            ))
         except Exception:
             pass
 

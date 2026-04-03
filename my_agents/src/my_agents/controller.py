@@ -267,7 +267,12 @@ class VCResearchController:
                 evidence=evidence,
                 source_profile=source_profile,
             )
-            tools = build_tools(brief, source_profile, task.agent, chroma_collection=chroma_collection)
+            downloads_dir = str(run_dir / "downloads")
+            tools = build_tools(
+                brief, source_profile, task.agent,
+                chroma_collection=chroma_collection,
+                downloads_dir=downloads_dir,
+            )
             self._write_run_state(run_dir, state, workflow)
 
             logger.info(f"Starting agent: {task.agent}", extra={"step": "agent_start", "agent": task.agent})
@@ -663,6 +668,10 @@ class VCResearchController:
                 "Financial diligence guidance:\n"
                 "- Exact burn, runway, and contribution margin are often not public. Do not loop trying to force exact numbers.\n"
                 "- If the financial_signal_search tool is available, use it early to gather a compact public-finance packet before making conclusions.\n"
+                "- If you find a link to an annual report, quarterly results PDF, or investor presentation, "
+                "use the download_document tool to download it. The content will be extracted and indexed "
+                "for semantic search via data_room_search.\n"
+                "- For listed companies, look for BSE/NSE annual reports and SEBI filings — download these.\n"
                 "- If uploaded docs are missing, use public proxies such as reported revenue, funding history, pricing, gross-margin hints, working-capital signals, and partner or distribution disclosures.\n"
                 "- If website data is missing too, do at most 2 web searches, return the strongest public finance signal you found, and clearly list the missing diligence items.\n"
                 "- A conservative final answer with explicit open questions is better than repeated searching.\n\n"
