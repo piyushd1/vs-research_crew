@@ -62,6 +62,7 @@ def render_eval_report(
         f"- Structure: {rubric.structure_score}/10",
         f"- Length fit: {rubric.length_fit_score}/10",
         f"- Evidence strength: {rubric.evidence_strength_score}/10",
+        f"- Actionability: {rubric.actionability_score}/10",
         "",
         "## Industry Validation",
         f"- Benchmark: {assessment.industry_profile}",
@@ -71,8 +72,22 @@ def render_eval_report(
         f"- Citation count: {assessment.citation_count}",
         f"- Missing required sections: {', '.join(assessment.missing_sections) or 'None'}",
         "",
-        "## Hallucination Flags",
     ]
+
+    # Score divergence warning
+    if bundle.scorecard:
+        delta = abs(bundle.scorecard.overall_score - rubric.final_eval_score)
+        if delta > 20:
+            lines.extend([
+                "## Score Divergence Warning",
+                f"Scorecard ({bundle.scorecard.overall_score:.0f}/100) and eval "
+                f"({rubric.final_eval_score}/100) diverge by {delta:.0f} points. "
+                "This may indicate that report quality does not match the underlying "
+                "evidence quality. Manual review recommended.",
+                "",
+            ])
+
+    lines.append("## Hallucination Flags")
     lines.extend(
         f"- {item.finding_claim}: {item.rationale}"
         for item in rubric.hallucinations

@@ -266,8 +266,14 @@ class VCResearchController:
                 state=state,
                 evidence=evidence,
                 source_profile=source_profile,
+                weights=weights,
             )
-            tools = build_tools(brief, source_profile, task.agent, chroma_collection=chroma_collection)
+            downloads_dir = str(run_dir / "downloads")
+            tools = build_tools(
+                brief, source_profile, task.agent,
+                chroma_collection=chroma_collection,
+                downloads_dir=downloads_dir,
+            )
             self._write_run_state(run_dir, state, workflow)
 
             logger.info(f"Starting agent: {task.agent}", extra={"step": "agent_start", "agent": task.agent})
@@ -304,6 +310,7 @@ class VCResearchController:
                 agent_key=task.agent,
                 spec=config.agents[task.agent],
                 config=config,
+                valid_dimensions=set(weights.keys()),
             )
 
             self._persist_agent_result(run_dir, result)
@@ -618,6 +625,7 @@ class VCResearchController:
         state: RunState,
         evidence: EvidenceRegistry,
         source_profile: SourcePriorityConfig,
+        weights: dict[str, int] | None = None,
     ) -> str:
         spec = config.agents[task.agent]
         injected_flags = self._consume_flags_for_agent(state, task.agent)
@@ -663,6 +671,10 @@ class VCResearchController:
                 "Financial diligence guidance:\n"
                 "- Exact burn, runway, and contribution margin are often not public. Do not loop trying to force exact numbers.\n"
                 "- If the financial_signal_search tool is available, use it early to gather a compact public-finance packet before making conclusions.\n"
+                "- If you find a link to an annual report, quarterly results PDF, or investor presentation, "
+                "use the download_document tool to download it. The content will be extracted and indexed "
+                "for semantic search via data_room_search.\n"
+                "- For listed companies, look for BSE/NSE annual reports and SEBI filings — download these.\n"
                 "- If uploaded docs are missing, use public proxies such as reported revenue, funding history, pricing, gross-margin hints, working-capital signals, and partner or distribution disclosures.\n"
                 "- If website data is missing too, do at most 2 web searches, return the strongest public finance signal you found, and clearly list the missing diligence items.\n"
                 "- A conservative final answer with explicit open questions is better than repeated searching.\n\n"
@@ -676,12 +688,24 @@ class VCResearchController:
                 "- Do not inspect the broader filesystem. Prefer relative filenames from that directory.\n\n"
             )
 
+        # List ALL valid dimension names so agents use the canonical names
+        all_dim_names = list(weights.keys()) if weights else []
+        primary_dims = set(spec.scoring_dimensions) if spec.scoring_dimensions else set()
         scoring_block = ""
-        if spec.scoring_dimensions:
+        if all_dim_names:
+            dim_lines = []
+            for dim in all_dim_names:
+                marker = " (YOUR PRIMARY)" if dim in primary_dims else ""
+                note = ""
+                if dim == "risk_profile":
+                    note = " — 5=minimal risk, 1=severe risk"
+                dim_lines.append(f"- {dim}{marker}{note}")
             scoring_block = (
-                "Your dimension_scores entries must use ONLY these configured dimensions:\n"
-                + "\n".join(f"- {item}" for item in spec.scoring_dimensions)
-                + "\n\n"
+                "DIMENSION SCORING — use ONLY these exact dimension names:\n"
+                + "\n".join(dim_lines)
+                + "\n"
+                "Score your PRIMARY dimension(s) always. Score others if your research gives evidence.\n"
+                "NEVER invent dimension names. ONLY use the names listed above.\n\n"
             )
 
         workflow_agent_ids = "\n".join(
@@ -748,13 +772,20 @@ class VCResearchController:
             "- You MUST return a final structured answer even if evidence is thin.\n"
             "- A conservative answer with explicit gaps is better than looping forever.\n"
             "- If evidence is weak or conflicting, record an open question instead of stretching the claim.\n\n"
+            "--- CITATION QUALITY RULE ---\n"
+            "Every source_ref in your findings MUST be:\n"
+            "- A specific URL (https://inc42.com/startups/...) or\n"
+            "- A document with page reference (MCA filing CIN U12345, Annual Report p.12) or\n"
+            "- A regulatory filing identifier (RBI circular RBI/2024-25/XX)\n"
+            "NEVER use: 'media reports', 'industry sources', 'Inc42 article', 'company website'\n\n"
             "--- SELF-CRITIQUE CHECKLIST (verify before submitting) ---\n"
             "Before producing your final JSON, verify:\n"
-            "[ ] Every claim has a specific source (not 'various sources' or 'industry reports')\n"
+            "[ ] Every source_ref is a specific URL or document identifier\n"
             "[ ] Confidence scores reflect actual evidence (don't default everything to 0.8)\n"
             "[ ] Open questions list everything you could NOT verify\n"
-            "[ ] Dimension scores use the scoring rubric, not gut feel\n"
-            "[ ] No claims are merely restating the company brief\n\n"
+            "[ ] Dimension scores use ONLY the canonical names listed above\n"
+            "[ ] No claims are merely restating the company brief\n"
+            "[ ] Your summary is at least 300 words\n\n"
             "When adding downstream_flags.for_agent, use ONLY these exact agent ids:\n"
             f"{workflow_agent_ids}\n{control_agent_ids}\n\n"
             f"{founder_signal_block}"
@@ -861,17 +892,18 @@ class VCResearchController:
             "- No marketing language ('revolutionary', 'game-changing', 'disruptive')\n"
             "- Acknowledge gaps honestly rather than padding with vague statements\n"
             "- EVERY section must hit its word target. Short sections = failed report.\n\n"
-            "--- SECTION WORD TARGETS (you MUST hit these) ---\n"
-            "executive_summary: 80-150 words. Verdict first, then 2 key evidence points, then biggest risk.\n"
-            "company_snapshot: 100-200 words. Founded when, by whom, funding to date, key metrics.\n"
-            "market_landscape: 200-400 words. TAM/SAM/SOM, 3-5 competitors named, India dynamics.\n"
-            "financial_analysis: 200-400 words. Revenue model, growth rate, unit economics, burn/runway.\n"
-            "product_technology: 150-300 words. Product, tech differentiation, IP, engineering signals.\n"
-            "founder_assessment: 100-200 words. Founder background, domain expertise, team.\n"
-            "gtm_momentum: 150-300 words. GTM motion, traction metrics, customer acquisition.\n"
-            "regulatory_compliance: 100-200 words. Applicable regulations, compliance status, risks.\n"
-            "risk_register: 150-300 words. Top 3-5 risks with probability and impact.\n"
-            "investment_recommendation: 100-200 words. INVEST/PASS/CONDITIONAL with 2-3 reasons.\n\n"
+            "--- SECTION WORD TARGETS (you MUST hit these — short sections = failed report) ---\n"
+            "executive_summary: 200-300 words. Verdict first, 3 conviction points, biggest risk, ask.\n"
+            "company_snapshot: 300-400 words. Founded when, by whom, product, business model, funding history, key metrics.\n"
+            "market_landscape: 400-600 words. TAM/SAM/SOM with sources, 3-5 named competitors with funding, India dynamics.\n"
+            "financial_analysis: 500-700 words. Revenue model, growth rate, unit economics (or proxies), burn/runway, capital efficiency.\n"
+            "product_technology: 300-400 words. Product features, tech stack, moat, IP portfolio, engineering signals.\n"
+            "founder_assessment: 300-400 words. Founder backgrounds, domain expertise, prior exits, team completeness.\n"
+            "gtm_momentum: 300-400 words. GTM motion type, channels, traction metrics, retention, customer proof.\n"
+            "regulatory_compliance: 200-300 words. Applicable frameworks, compliance status, filing references, risks.\n"
+            "risk_register: 300-400 words. Top 5 risks, each with probability x impact assessment and mitigation.\n"
+            "investment_recommendation: 200-300 words. INVEST BECAUSE (2-3 points) / PASS BECAUSE (2-3) / CONDITIONAL ON (2-3).\n\n"
+            "TOTAL TARGET: 3,500-5,000 words across all sections. This is an IC memo, not a summary.\n\n"
             "If a section has thin evidence, use the data_room_search tool to find additional data.\n"
             "If still thin after search, write what you know and note the gap explicitly.\n\n"
             f"Scorecard:\n{scorecard.model_dump_json(indent=2)}\n\n"
@@ -947,8 +979,18 @@ class VCResearchController:
             from my_agents.report_standards import WORD_RANGES
             target_min = WORD_RANGES[selected_profile][0]
 
-            # Only retry if significantly short
-            if standards.word_count >= target_min * 0.6:
+            # Count thin sections (under 100 words)
+            thin_section_count = sum(
+                1 for s in bundle.sections.values()
+                if s and len(s.split()) < 100
+            )
+
+            # Retry if total word count is below 85% of target OR 3+ thin sections
+            needs_refinement = (
+                standards.word_count < target_min * 0.85
+                or thin_section_count >= 3
+            )
+            if not needs_refinement:
                 return bundle
 
             self.print_fn(
@@ -1260,16 +1302,38 @@ class VCResearchController:
         medium_issue_count = sum(
             1 for issue in audit.issues if issue.severity == RiskLevel.MEDIUM
         )
-        gap_penalty = min(
-            18.0,
-            (len(audit.gaps) * 2.0) + (high_issue_count * 3.0) + (medium_issue_count * 1.5),
+        # Count zero-evidence dimensions
+        zero_evidence_dims = sum(
+            1 for dim in dimensions if dim.evidence_count == 0
         )
+        gap_penalty = min(
+            40.0,
+            (len(audit.gaps) * 2.5)
+            + (high_issue_count * 5.0)
+            + (medium_issue_count * 2.0)
+            + (max(0, zero_evidence_dims - 3) * 2.5),  # penalty if 4+ dims have zero evidence
+        )
+
+        # Audit penalty for material governance issues
+        governance_keywords = {"unverified", "mischaracterized", "fabricated", "governance concern", "material misstatement"}
+        audit_penalty = 0.0
+        for issue in audit.issues:
+            if issue.severity == RiskLevel.HIGH:
+                audit_penalty += 5.0
+            elif issue.severity == RiskLevel.MEDIUM:
+                audit_penalty += 1.5
+            detail_lower = issue.detail.lower()
+            if any(kw in detail_lower for kw in governance_keywords):
+                audit_penalty += 3.0
+        audit_penalty = min(30.0, audit_penalty)
+
         overall = (
             weighted_dimension_score
             + ((confidence_index - 60.0) * 0.15)
             + ((coverage_index - 50.0) * 0.10)
             - (conflict_index * 0.08)
             - gap_penalty
+            - audit_penalty
         )
         overall = max(0.0, min(100.0, round(overall, 1)))
         if overall < 55:
@@ -1277,6 +1341,10 @@ class VCResearchController:
         elif overall >= 75:
             recommendation = "STRONG INTEREST"
         else:
+            recommendation = "CONDITIONAL"
+
+        # Risk override: downgrade if severe audit issues exist
+        if recommendation == "STRONG INTEREST" and high_issue_count >= 2:
             recommendation = "CONDITIONAL"
 
         return ScorecardSummary(
@@ -1288,6 +1356,7 @@ class VCResearchController:
             coverage_index=round(coverage_index, 1),
             conflict_index=round(conflict_index, 1),
             gap_penalty=round(gap_penalty, 1),
+            audit_penalty=round(audit_penalty, 1),
         )
 
     def _handle_checkpoint(
@@ -1344,9 +1413,12 @@ class VCResearchController:
         agent_key: str,
         spec: object,
         config: AppConfig,
+        valid_dimensions: set[str] | None = None,
     ) -> AgentFindingResult:
         allowed_agents = set(config.agents)
-        allowed_dimensions = set(getattr(spec, "scoring_dimensions", []))
+        # Filter dimension scores against canonical weight names (not agent's config)
+        # This prevents agents from inventing dimension names that silently vanish
+        dim_filter = valid_dimensions or set()
         normalized_flags = [
             flag
             for flag in result.downstream_flags
@@ -1355,7 +1427,7 @@ class VCResearchController:
         normalized_scores = [
             score
             for score in result.dimension_scores
-            if not allowed_dimensions or score.dimension in allowed_dimensions
+            if not dim_filter or score.dimension in dim_filter
         ]
         normalized_sections = [
             section_key

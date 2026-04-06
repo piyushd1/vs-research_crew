@@ -1,50 +1,116 @@
 from __future__ import annotations
 
+import re
 from html import escape
+
+
+def _is_table_row(line: str) -> bool:
+    """Check if a line looks like a markdown table row: | col | col |"""
+    stripped = line.strip()
+    return stripped.startswith("|") and stripped.endswith("|") and stripped.count("|") >= 3
+
+
+def _is_separator_row(line: str) -> bool:
+    """Check if a line is a table separator: | --- | --- |"""
+    stripped = line.strip()
+    return bool(re.match(r"^\|[\s\-:|]+\|$", stripped))
+
+
+def _render_table(rows: list[str]) -> str:
+    """Convert a block of markdown table rows into an HTML table."""
+    html_parts: list[str] = ['<table>']
+    for i, row in enumerate(rows):
+        if _is_separator_row(row):
+            continue
+        cells = [c.strip() for c in row.strip().strip("|").split("|")]
+        tag = "th" if i == 0 else "td"
+        row_html = "".join(f"<{tag}>{escape(cell)}</{tag}>" for cell in cells)
+        html_parts.append(f"<tr>{row_html}</tr>")
+    html_parts.append("</table>")
+    return "\n".join(html_parts)
+
+
+def _render_inline(text: str) -> str:
+    """Handle bold (**text**) inline formatting."""
+    result = escape(text)
+    result = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", result)
+    return result
 
 
 def markdownish_to_html_body(markdown_text: str) -> str:
     lines = markdown_text.splitlines()
     html_lines: list[str] = []
     in_list = False
-    for line in lines:
+    table_buffer: list[str] = []
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
         stripped = line.strip()
+
+        # Table handling: collect contiguous table rows
+        if _is_table_row(stripped):
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+            table_buffer.append(stripped)
+            i += 1
+            continue
+        elif table_buffer:
+            html_lines.append(_render_table(table_buffer))
+            table_buffer = []
+
         if not stripped:
             if in_list:
                 html_lines.append("</ul>")
                 in_list = False
+            i += 1
             continue
+
         if stripped.startswith("# "):
             if in_list:
                 html_lines.append("</ul>")
                 in_list = False
-            html_lines.append(f"<h1>{escape(stripped[2:])}</h1>")
+            html_lines.append(f"<h1>{_render_inline(stripped[2:])}</h1>")
+            i += 1
             continue
+
         if stripped.startswith("## "):
             if in_list:
                 html_lines.append("</ul>")
                 in_list = False
-            html_lines.append(f"<h2>{escape(stripped[3:])}</h2>")
+            html_lines.append(f"<h2>{_render_inline(stripped[3:])}</h2>")
+            i += 1
             continue
+
         if stripped.startswith("### "):
             if in_list:
                 html_lines.append("</ul>")
                 in_list = False
-            html_lines.append(f"<h3>{escape(stripped[4:])}</h3>")
+            html_lines.append(f"<h3>{_render_inline(stripped[4:])}</h3>")
+            i += 1
             continue
+
         if stripped.startswith("- "):
             if not in_list:
                 html_lines.append("<ul>")
                 in_list = True
-            html_lines.append(f"<li>{escape(stripped[2:])}</li>")
+            html_lines.append(f"<li>{_render_inline(stripped[2:])}</li>")
+            i += 1
             continue
+
         if in_list:
             html_lines.append("</ul>")
             in_list = False
-        html_lines.append(f"<p>{escape(stripped)}</p>")
+        html_lines.append(f"<p>{_render_inline(stripped)}</p>")
+        i += 1
 
+    # Flush remaining
+    if table_buffer:
+        html_lines.append(_render_table(table_buffer))
     if in_list:
         html_lines.append("</ul>")
+
     return "\n".join(html_lines)
 
 
@@ -67,9 +133,15 @@ def render_html_document(title: str, body_html: str) -> str:
             "    h3 { font-size:16px; margin:22px 0 8px; color:var(--accent); }",
             "    p, li { line-height:1.62; font-size:16px; }",
             "    ul { padding-left:22px; }",
+            "    table { width:100%; border-collapse:collapse; margin:16px 0; font-size:15px; }",
+            "    th, td { padding:10px 14px; text-align:left; border-bottom:1px solid var(--line); }",
+            "    th { background:var(--accent); color:#fff; font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:0.04em; }",
+            "    tr:nth-child(even) td { background:rgba(49,87,79,0.04); }",
+            "    tr:hover td { background:rgba(49,87,79,0.08); }",
+            "    strong { font-weight:700; }",
             "    .meta { color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:12px; }",
             "    .footer { margin-top:28px; color:var(--muted); font-size:13px; }",
-            "    @media (max-width: 900px) { main { margin:16px; padding:20px; } h1 { font-size:30px; } }",
+            "    @media (max-width: 900px) { main { margin:16px; padding:20px; } h1 { font-size:30px; } table { font-size:13px; } th, td { padding:6px 8px; } }",
             "  </style>",
             "</head>",
             "<body>",

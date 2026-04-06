@@ -266,6 +266,7 @@ class ScorecardSummary(BaseModel):
     coverage_index: float = Field(default=0.0, ge=0.0, le=100.0)
     conflict_index: float = Field(default=0.0, ge=0.0, le=100.0)
     gap_penalty: float = Field(default=0.0, ge=0.0, le=100.0)
+    audit_penalty: float = Field(default=0.0, ge=0.0, le=100.0)
     methodology: str = (
         "Workflow-aware weighted score using specialist ratings adjusted for evidence confidence, "
         "coverage, conflicts, and diligence gaps."
@@ -321,6 +322,7 @@ class VCRubric(BaseModel):
     structure_score: int = Field(default=7, ge=1, le=10)
     length_fit_score: int = Field(default=7, ge=1, le=10)
     evidence_strength_score: int = Field(default=7, ge=1, le=10)
+    actionability_score: int = Field(default=7, ge=1, le=10)
     hallucinations: list[FindingEval] = Field(default_factory=list)
     negative_constraint_violations: list[str] = Field(default_factory=list)
     improvement_actions: list[str] = Field(default_factory=list)

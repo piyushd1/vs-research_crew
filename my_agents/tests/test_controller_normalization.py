@@ -73,11 +73,13 @@ class ControllerNormalizationTests(unittest.TestCase):
             suggested_section_keys=["company_snapshot", "made_up_section"],
         )
 
+        valid_dims = set(self.config.resolve_score_weights("general").keys())
         normalized = self.controller._normalize_agent_result(
             result=result,
             agent_key="startup_sourcer",
             spec=self.config.agents["startup_sourcer"],
             config=self.config,
+            valid_dimensions=valid_dims,
         )
 
         self.assertEqual(normalized.agent_name, "startup_sourcer")
