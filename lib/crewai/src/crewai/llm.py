@@ -66,7 +66,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from crewai.agent.core import Agent
+    from crewai.agents.agent_builder.base_agent import BaseAgent
     from crewai.task import Task
     from crewai.tools.base_tool import BaseTool
     from crewai.utilities.types import LLMMessage
@@ -343,6 +343,7 @@ class AccumulatedToolArgs(BaseModel):
 
 
 class LLM(BaseLLM):
+    llm_type: Literal["litellm"] = "litellm"
     completion_cost: float | None = None
     timeout: float | int | None = None
     top_p: float | None = None
@@ -735,7 +736,7 @@ class LLM(BaseLLM):
         callbacks: list[Any] | None = None,
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> Any:
         """Handle a streaming response from the LLM.
@@ -1048,7 +1049,7 @@ class LLM(BaseLLM):
         accumulated_tool_args: defaultdict[int, AccumulatedToolArgs],
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_id: str | None = None,
     ) -> Any:
         for tool_call in tool_calls:
@@ -1137,7 +1138,7 @@ class LLM(BaseLLM):
         callbacks: list[Any] | None = None,
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> str | Any:
         """Handle a non-streaming response from the LLM.
@@ -1289,7 +1290,7 @@ class LLM(BaseLLM):
         callbacks: list[Any] | None = None,
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> str | Any:
         """Handle an async non-streaming response from the LLM.
@@ -1430,7 +1431,7 @@ class LLM(BaseLLM):
         callbacks: list[Any] | None = None,
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> Any:
         """Handle an async streaming response from the LLM.
@@ -1606,7 +1607,7 @@ class LLM(BaseLLM):
         tool_calls: list[Any],
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
     ) -> Any:
         """Handle a tool call from the LLM.
 
@@ -1702,7 +1703,7 @@ class LLM(BaseLLM):
         callbacks: list[Any] | None = None,
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> str | Any:
         """High-level LLM call method.
@@ -1852,7 +1853,7 @@ class LLM(BaseLLM):
         callbacks: list[Any] | None = None,
         available_functions: dict[str, Any] | None = None,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> str | Any:
         """Async high-level LLM call method.
@@ -2001,7 +2002,7 @@ class LLM(BaseLLM):
         response: Any,
         call_type: LLMCallType,
         from_task: Task | None = None,
-        from_agent: Agent | None = None,
+        from_agent: BaseAgent | None = None,
         messages: str | list[LLMMessage] | None = None,
         usage: dict[str, Any] | None = None,
     ) -> None:
@@ -2513,18 +2514,51 @@ class LLM(BaseLLM):
             True if the model likely supports images.
         """
         vision_prefixes = (
+            # OpenAI — GPT-4 vision models
             "gpt-4o",
             "gpt-4-turbo",
             "gpt-4-vision",
             "gpt-4.1",
+            # OpenAI — GPT-5 family (all variants support multimodal)
+            "gpt-5",
+            # OpenAI — o-series reasoning models with vision
+            # o1, o3, o4, o4-mini support multimodal
+            # o1-mini, o1-preview, o3-mini are text-only — handled via exclusion below
+            "o1",
+            "o3",
+            "o4-mini",
+            "o4",
+            # Anthropic — Claude 3+ models support vision
             "claude-3",
             "claude-4",
             "claude-sonnet-4",
             "claude-opus-4",
             "claude-haiku-4",
+            # Google — all Gemini models support multimodal
             "gemini",
+            # xAI — Grok models support vision
+            "grok",
+            # Mistral — Pixtral vision model
+            "pixtral",
+            # Open-source vision models
+            "llava",
+            # Alibaba — Qwen vision-language models
+            "qwen-vl",
+            "qwen2-vl",
+            "qwen3-vl",
         )
+        # Text-only models that would otherwise match vision prefixes
+        text_only_models = ("o3-mini", "o1-mini", "o1-preview")
+
         model_lower = self.model.lower()
+
+        # Check exclusion first
+        if any(
+            model_lower.startswith(m) or f"/{m}" in model_lower
+            for m in text_only_models
+        ):
+            return False
+
         return any(
             model_lower.startswith(p) or f"/{p}" in model_lower for p in vision_prefixes
         )
