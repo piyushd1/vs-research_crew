@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import re
 from pathlib import Path
+import re
 from typing import Any
 
 import chromadb
-import pdfplumber
 from crewai.tools import BaseTool
+import pdfplumber
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -83,7 +83,7 @@ class DocumentIndexer:
         metadatas: list[dict[str, Any]] = []
 
         for idx, chunk in enumerate(chunks):
-            doc_id = hashlib.md5(f"{source}:{idx}".encode()).hexdigest()
+            doc_id = hashlib.sha256(f"{source}:{idx}".encode()).hexdigest()
             meta: dict[str, Any] = {"source": source}
             if page is not None:
                 meta["page"] = page
