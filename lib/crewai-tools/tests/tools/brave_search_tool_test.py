@@ -668,6 +668,7 @@ def test_rate_limit_disabled_when_zero(mock_time, mock_get, web_tool):
 
     web_tool._last_request_time = 100.0
     mock_time.time.return_value = 100.0  # same instant
+    web_tool._requests_per_second = 0
 
     web_tool._run(query="test")
 
