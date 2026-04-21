@@ -122,10 +122,7 @@ class BraveSearchTool(BaseTool):
             if operators is not None:
                 payload["operators"] = operators
 
-            # Limit the result types to "web" since there is presently no
-            # handling of other types like "discussions", "faq", "infobox",
-            # "news", "videos", or "locations".
-            payload["result_filter"] = "web"
+            # Removed result_filter to allow other result types like "discussions", "faq", etc.
 
             # Setup Request Headers
             headers = {
@@ -139,32 +136,105 @@ class BraveSearchTool(BaseTool):
             response.raise_for_status()  # Handle non-200 responses
             results = response.json()
 
-            # TODO: Handle other result types like "discussions", "faq", etc.
-            web_results_items = []
-            if "web" in results:
-                web_results = results["web"]["results"]
+            # Handle multiple result types
+            all_results_items = []
 
+            # Process web results
+            if "web" in results:
+                web_results = results["web"].get("results", [])
                 for result in web_results:
                     url = result.get("url")
                     title = result.get("title")
-                    # If, for whatever reason, this entry does not have a title
-                    # or url, skip it.
                     if not url or not title:
                         continue
-                    item = {
-                        "url": url,
-                        "title": title,
-                    }
-                    description = result.get("description")
-                    if description:
+                    item = {"url": url, "title": title, "type": "web"}
+                    if description := result.get("description"):
                         item["description"] = description
-                    snippets = result.get("extra_snippets")
-                    if snippets:
+                    if snippets := result.get("extra_snippets"):
                         item["snippets"] = snippets
+                    all_results_items.append(item)
 
-                    web_results_items.append(item)
+            # Process discussions
+            if "discussions" in results:
+                discussion_results = results["discussions"].get("results", [])
+                for result in discussion_results:
+                    url = result.get("url")
+                    title = result.get("title")
+                    if not url or not title:
+                        continue
+                    item = {"url": url, "title": title, "type": "discussion"}
+                    if description := result.get("description"):
+                        item["description"] = description
+                    all_results_items.append(item)
 
-            content = json.dumps(web_results_items)
+            # Process faq
+            if "faq" in results:
+                faq_results = results["faq"].get("results", [])
+                for result in faq_results:
+                    url = result.get("url")
+                    title = result.get("title") or result.get("question")
+                    if not url or not title:
+                        continue
+                    item = {"url": url, "title": title, "type": "faq"}
+                    if answer := result.get("answer"):
+                        item["description"] = answer
+                    elif description := result.get("description"):
+                        item["description"] = description
+                    all_results_items.append(item)
+
+            # Process news
+            if "news" in results:
+                news_results = results["news"].get("results", [])
+                for result in news_results:
+                    url = result.get("url")
+                    title = result.get("title")
+                    if not url or not title:
+                        continue
+                    item = {"url": url, "title": title, "type": "news"}
+                    if description := result.get("description"):
+                        item["description"] = description
+                    all_results_items.append(item)
+
+            # Process locations
+            if "locations" in results:
+                location_results = results["locations"].get("results", [])
+                for result in location_results:
+                    url = result.get("url")
+                    title = result.get("title")
+                    if not url or not title:
+                        continue
+                    item = {"url": url, "title": title, "type": "location"}
+                    if description := result.get("description"):
+                        item["description"] = description
+                    all_results_items.append(item)
+
+            # Process videos
+            if "videos" in results:
+                video_results = results["videos"].get("results", [])
+                for result in video_results:
+                    url = result.get("url")
+                    title = result.get("title")
+                    if not url or not title:
+                        continue
+                    item = {"url": url, "title": title, "type": "video"}
+                    if description := result.get("description"):
+                        item["description"] = description
+                    all_results_items.append(item)
+
+            # Process infobox
+            if "infobox" in results:
+                infobox_results = results["infobox"].get("results", [])
+                for result in infobox_results:
+                    url = result.get("url")
+                    title = result.get("title")
+                    if not url or not title:
+                        continue
+                    item = {"url": url, "title": title, "type": "infobox"}
+                    if description := result.get("description"):
+                        item["description"] = description
+                    all_results_items.append(item)
+
+            content = json.dumps(all_results_items)
         except requests.RequestException as e:
             return f"Error performing search: {e!s}"
         except KeyError as e:
