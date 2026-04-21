@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -162,19 +161,15 @@ SECTOR_PROFILE_ALIASES = {
 }
 
 
-_DELIMITERS_RE = re.compile(r'[/_ \-]+')
-
 def normalize_profile_key(value: str | None) -> str | None:
-    if not value:
+    if value is None:
         return None
-
     normalized = value.strip().lower()
-
-    if "&" in normalized:
-        normalized = normalized.replace("&", " and ")
-
-    normalized = _DELIMITERS_RE.sub("_", normalized).strip("_")
-
+    for needle, replacement in (("&", " and "), ("/", "_"), ("-", "_"), (" ", "_")):
+        normalized = normalized.replace(needle, replacement)
+    while "__" in normalized:
+        normalized = normalized.replace("__", "_")
+    normalized = normalized.strip("_")
     return normalized or None
 
 
