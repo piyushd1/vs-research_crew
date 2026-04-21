@@ -15,7 +15,6 @@ dependencies = [
 my_agents = "my_agents.main:run"
 run_crew = "my_agents.main:run"
 replay = "my_agents.main:replay"
-test = "my_agents.main:test"
 
 [build-system]
 requires = ["hatchling"]

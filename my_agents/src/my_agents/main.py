@@ -283,9 +283,5 @@ def replay():
     return run()
 
 
-def test():
-    raise SystemExit("Use the project test suite instead of the starter template command.")
-
-
 if __name__ == "__main__":
     run()

@@ -83,7 +83,7 @@ class DocumentIndexer:
         metadatas: list[dict[str, Any]] = []
 
         for idx, chunk in enumerate(chunks):
-            doc_id = hashlib.md5(f"{source}:{idx}".encode()).hexdigest()
+            doc_id = hashlib.sha256(f"{source}:{idx}".encode()).hexdigest()
             meta: dict[str, Any] = {"source": source}
             if page is not None:
                 meta["page"] = page
